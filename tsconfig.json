@@ -1,0 +1,9 @@
+{
+	"extends": "@sindresorhus/tsconfig",
+	"compilerOptions": {
+		"outDir": "dist",
+		"skipLibCheck": true
+	},
+	"include": ["source"],
+	"exclude": ["source/client/**/*"]
+}
