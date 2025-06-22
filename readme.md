@@ -1,5 +1,3 @@
-# mcp-use-cli
-
 <div align="center">
   <img src="static/terminal.png" alt="Terminal" />
 </div>
