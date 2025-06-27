@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
-import TextInput from 'ink-text-input';
 import BigText from 'ink-big-text';
 import { mcpService, MCPMessage, MCPToolCall } from './mcp-service.js';
 import { CommandResult } from './commands.js';
 import { Logger } from './logger.js';
+import { InputPrompt } from './InputPrompt.js';
 
 type Message = MCPMessage;
 type ToolCall = MCPToolCall;
@@ -174,49 +174,49 @@ export default function App({ name }: Props) {
 		if (key.ctrl && inputChar === 'd') {
 			process.exit(0);
 		}
-
-		// Handle arrow key navigation through input history
-		if (key.upArrow) {
-			Logger.debug('Arrow up pressed', { historyIndex, historyLength: inputHistory.length });
-
-			if (inputHistory.length === 0) return;
-
-			// If we're at the bottom of history, save current input
-			if (historyIndex === -1) {
-				setTempInput(input);
-			}
-
-			// Move up in history
-			const newIndex = Math.min(historyIndex + 1, inputHistory.length - 1);
-			if (newIndex !== historyIndex) {
-				setHistoryIndex(newIndex);
-				const historyItem = inputHistory[inputHistory.length - 1 - newIndex];
-				if (historyItem !== undefined) {
-					setInput(historyItem);
-				}
-			}
-		}
-
-		if (key.downArrow) {
-			Logger.debug('Arrow down pressed', { historyIndex, historyLength: inputHistory.length });
-
-			if (historyIndex === -1) return;
-
-			// Move down in history
-			const newIndex = historyIndex - 1;
-			if (newIndex === -1) {
-				// Back to current input
-				setHistoryIndex(-1);
-				setInput(tempInput);
-			} else {
-				setHistoryIndex(newIndex);
-				const historyItem = inputHistory[inputHistory.length - 1 - newIndex];
-				if (historyItem !== undefined) {
-					setInput(historyItem);
-				}
-			}
-		}
 	});
+
+	// History navigation callbacks
+	const handleHistoryUp = useCallback(() => {
+		Logger.debug('History up requested', { historyIndex, historyLength: inputHistory.length });
+
+		if (inputHistory.length === 0) return;
+
+		// If we're at the bottom of history, save current input
+		if (historyIndex === -1) {
+			setTempInput(input);
+		}
+
+		// Move up in history
+		const newIndex = Math.min(historyIndex + 1, inputHistory.length - 1);
+		if (newIndex !== historyIndex) {
+			setHistoryIndex(newIndex);
+			const historyItem = inputHistory[inputHistory.length - 1 - newIndex];
+			if (historyItem !== undefined) {
+				setInput(historyItem);
+			}
+		}
+	}, [historyIndex, inputHistory, input, setInput, setHistoryIndex, setTempInput]);
+
+	const handleHistoryDown = useCallback(() => {
+		Logger.debug('History down requested', { historyIndex, historyLength: inputHistory.length });
+
+		if (historyIndex === -1) return;
+
+		// Move down in history
+		const newIndex = historyIndex - 1;
+		if (newIndex === -1) {
+			// Back to current input
+			setHistoryIndex(-1);
+			setInput(tempInput);
+		} else {
+			setHistoryIndex(newIndex);
+			const historyItem = inputHistory[inputHistory.length - 1 - newIndex];
+			if (historyItem !== undefined) {
+				setInput(historyItem);
+			}
+		}
+	}, [historyIndex, inputHistory, tempInput, setInput, setHistoryIndex]);
 
 	// Handle submit of commands
 	const handleSubmit = async (userInput: string) => {
@@ -396,32 +396,32 @@ export default function App({ name }: Props) {
 
 			if (result.isCommand && result.commandResult) {
 				// Check if we need to prompt for API key
-                if (result.commandResult.data?.reinitializeAgent) {
-                    await mcpService.initializeAgent();
-                    setConnectedServers(mcpService.getConnectedServers());
-                }
+				if (result.commandResult.data?.reinitializeAgent) {
+					await mcpService.initializeAgent();
+					setConnectedServers(mcpService.getConnectedServers());
+				}
 
-                // Check if we need to prompt for API key
-                if (result.commandResult.type === 'prompt_key' && result.commandResult.data) {
-                    setIsWaitingForApiKey(true);
-                    setPendingProvider(result.commandResult.data.provider);
-                    setPendingModel(result.commandResult.data.model);
-                } else if (result.commandResult.type === 'prompt_server_config' && result.commandResult.data) {
-                    setIsWaitingForServerConfig(true);
-                    setServerConfigStep(result.commandResult.data.step);
-                    setCurrentServerConfig(result.commandResult.data.config || null);
-                } else if (result.commandResult.data?.hasOwnProperty('llmConfig')) {
-                    // Update current model if it changed (including null for clearkeys)
-                    setCurrentModel(mcpService.getCurrentModel());
-                }
-                const commandMessage: CommandMessage = {
-                    id: (Date.now() + 1).toString(),
-                    role: 'command',
-                    content: result.response,
-                    commandResult: result.commandResult,
-                    timestamp: new Date(),
-                };
-                setMessages(prev => [...prev, commandMessage]);
+				// Check if we need to prompt for API key
+				if (result.commandResult.type === 'prompt_key' && result.commandResult.data) {
+					setIsWaitingForApiKey(true);
+					setPendingProvider(result.commandResult.data.provider);
+					setPendingModel(result.commandResult.data.model);
+				} else if (result.commandResult.type === 'prompt_server_config' && result.commandResult.data) {
+					setIsWaitingForServerConfig(true);
+					setServerConfigStep(result.commandResult.data.step);
+					setCurrentServerConfig(result.commandResult.data.config || null);
+				} else if (result.commandResult.data?.hasOwnProperty('llmConfig')) {
+					// Update current model if it changed (including null for clearkeys)
+					setCurrentModel(mcpService.getCurrentModel());
+				}
+				const commandMessage: CommandMessage = {
+					id: (Date.now() + 1).toString(),
+					role: 'command',
+					content: result.response,
+					commandResult: result.commandResult,
+					timestamp: new Date(),
+				};
+				setMessages(prev => [...prev, commandMessage]);
 			} else {
 				// Handle regular assistant response
 				const assistantMessage: Message = {
@@ -536,34 +536,40 @@ export default function App({ name }: Props) {
 			</Box>
 
 			{showInput && !initializationError && (
-				<Box flexDirection="row" gap={1}>
-					<Box flexGrow={1} borderStyle="round" borderColor={isWaitingForApiKey ? "yellow" : isWaitingForServerConfig ? "blue" : "gray"} paddingX={1}>
-						<Box marginRight={1}>
-							<Text color={isWaitingForApiKey ? "yellow" : isWaitingForServerConfig ? "blue" : "green"} bold>
-								{isWaitingForApiKey ? "🔑" : isWaitingForServerConfig ? "🔧" : "❯"}
-							</Text>
+				<Box flexDirection="column" marginTop={1} paddingX={1}>
+					<Box borderStyle="round" borderColor={isWaitingForApiKey ? "yellow" : isWaitingForServerConfig ? "blue" : "gray"} paddingX={1} paddingY={1} minHeight={3}>
+						<Box flexDirection="row" width="100%">
+							<Box marginRight={1} alignSelf="flex-start" flexShrink={0}>
+								<Text color={isWaitingForApiKey ? "yellow" : isWaitingForServerConfig ? "blue" : "green"} bold>
+									{isWaitingForApiKey ? "🔑" : isWaitingForServerConfig ? "🔧" : "❯"}
+								</Text>
+							</Box>
+							<Box flexGrow={1}>
+								<InputPrompt
+									value={input}
+									onChange={setInput}
+									onSubmit={handleSubmit}
+									onHistoryUp={handleHistoryUp}
+									onHistoryDown={handleHistoryDown}
+									placeholder={
+										isWaitingForApiKey
+											? `Enter ${pendingProvider.toUpperCase()} API key...`
+											: isWaitingForServerConfig
+												? "Enter server configuration..."
+												: "Type your message..."
+									}
+									mask={isWaitingForApiKey ? "*" : undefined}
+								/>
+							</Box>
 						</Box>
-						<TextInput
-							value={input}
-							onChange={setInput}
-							onSubmit={handleSubmit}
-							placeholder={
-								isWaitingForApiKey
-									? `Enter ${pendingProvider.toUpperCase()} API key...`
-									: isWaitingForServerConfig
-										? "Enter server configuration..."
-										: "Type your message..."
-							}
-							mask={isWaitingForApiKey ? "*" : undefined}
-						/>
-					</Box>
-					<Box borderStyle="round" borderColor="blue" paddingX={1} minWidth={25}>
-						<Text color="blue" bold>
-							🤖 {currentModel.replace('/', ' ')}
-						</Text>
 					</Box>
 				</Box>
 			)}
+			<Box borderStyle="round" borderColor="blue" paddingX={1} minWidth={25}>
+				<Text color="blue" bold>
+					🤖 {currentModel.replace('/', ' ')}
+				</Text>
+			</Box>
 		</Box>
 	);
 }
