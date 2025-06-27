@@ -52,8 +52,9 @@ export class MCPService {
 			maxSteps: 15,
 			memoryEnabled: true, // Enable built-in conversation memory
 		})
-
-		await this.agent?.initialize()
+		Logger.info('Initializing MCP agent', { agent })
+		await agent.initialize()
+		Logger.info('MCP agent initialized', { agent })
 		this.agent = agent;
 		this.client = client;
 	}
