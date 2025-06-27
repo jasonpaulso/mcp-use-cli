@@ -3,6 +3,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { SecureStorage, StoredConfig } from './storage.js';
+import { Logger } from './logger.js';
 
 export interface LLMConfig {
 	provider: 'openai' | 'anthropic' | 'google' | 'mistral';
@@ -26,7 +27,7 @@ export class CommandHandler {
 	private availableModels = {
 		openai: [
 			'gpt-4o',
-			'gpt-4o-mini', 
+			'gpt-4o-mini',
 			'gpt-4-turbo',
 			'gpt-4',
 			'gpt-3.5-turbo'
@@ -53,7 +54,7 @@ export class CommandHandler {
 	constructor() {
 		// Load persistent config
 		this.persistentConfig = SecureStorage.loadConfig();
-		
+
 		// Auto-detect available provider and set default
 		this.initializeDefaultProvider();
 	}
@@ -150,6 +151,12 @@ export class CommandHandler {
 				return this.handleListTools();
 			case '/test-server':
 				return this.handleTestServer(args);
+			case '/logs':
+				return this.handleLogs(args);
+			case '/clearlogs':
+				return this.handleClearLogs();
+			case '/history':
+				return this.handleHistory();
 			default:
 				return {
 					type: 'error',
@@ -183,6 +190,11 @@ Available slash commands:
   /config temp <value>       - Set temperature (0.0-2.0)
   /config tokens <value>     - Set max tokens
   /help                      - Show this help
+
+🛠️  Debugging & History:
+  /logs [path|tail]          - View debug logs (written to ~/.mcp-use-cli/debug.log)
+  /clearlogs                 - Clear debug logs
+  /history                   - Info about input history navigation (↑↓ arrows)
 
 📋 Quick Start Examples:
   /model openai gpt-4o-mini
@@ -231,14 +243,14 @@ Available slash commands:
 				google: 'GOOGLE_API_KEY',
 				mistral: 'MISTRAL_API_KEY'
 			};
-			
+
 			// Prompt for API key instead of showing error
 			return {
 				type: 'prompt_key',
 				message: `Please enter your ${provider.toUpperCase()} API key:`,
-				data: { 
-					provider, 
-					model, 
+				data: {
+					provider,
+					model,
 					envVar: envVarMap[provider as keyof typeof envVarMap]
 				}
 			};
@@ -272,7 +284,7 @@ Available slash commands:
 	private handleListModels(args: string[]): CommandResult {
 		if (args.length === 0) {
 			let modelList = '📋 Available models by provider:\n\n';
-			
+
 			Object.entries(this.availableModels).forEach(([provider, models]) => {
 				modelList += `🔸 ${provider}:\n`;
 				models.forEach(model => {
@@ -289,7 +301,7 @@ Available slash commands:
 		}
 
 		const provider = args[0] as keyof typeof this.availableModels;
-		
+
 		if (!this.availableModels[provider]) {
 			return {
 				type: 'error',
@@ -311,7 +323,7 @@ Available slash commands:
 
 	private handleStatus(): CommandResult {
 		const availableProviders = this.getAvailableProviders();
-		
+
 		let statusText = '🤖 Current Configuration:\n\n';
 
 		// API Keys status
@@ -320,17 +332,17 @@ Available slash commands:
 		allProviders.forEach(provider => {
 			const envVarMap = {
 				openai: 'OPENAI_API_KEY',
-				anthropic: 'ANTHROPIC_API_KEY', 
+				anthropic: 'ANTHROPIC_API_KEY',
 				google: 'GOOGLE_API_KEY',
 				mistral: 'MISTRAL_API_KEY'
 			} as const;
-			
+
 			const envVar = envVarMap[provider];
 			const hasEnvKey = !!process.env[envVar];
 			const hasSessionKey = !!this.sessionApiKeys[envVar];
-			
+
 			const hasPersistentKey = !!this.persistentConfig.apiKeys[envVar];
-			
+
 			if (hasSessionKey) {
 				const key = this.sessionApiKeys[envVar];
 				if (key) {
@@ -497,7 +509,7 @@ Available slash commands:
 		};
 
 		const envVar = envVarMap[provider as keyof typeof envVarMap];
-		
+
 		// Store the API key in persistent storage
 		this.persistentConfig.apiKeys[envVar] = apiKey;
 		SecureStorage.saveConfig(this.persistentConfig);
@@ -521,7 +533,7 @@ Available slash commands:
 
 		const maskedKey = this.maskApiKey(apiKey);
 		let message = `✅ ${provider} API key set (${maskedKey})`;
-		
+
 		if (shouldAutoSelect) {
 			message += `\n🤖 Auto-selected ${this.currentLLMConfig!.provider}/${this.currentLLMConfig!.model}`;
 		}
@@ -579,7 +591,7 @@ Available slash commands:
 		if (!this.currentLLMConfig) {
 			throw new Error('No LLM configured. Use /model command to select a provider and model.');
 		}
-		
+
 		const config = this.currentLLMConfig;
 		const baseConfig = {
 			temperature: config.temperature || 0.7,
@@ -596,7 +608,7 @@ Available slash commands:
 					modelName: config.model,
 					openAIApiKey: openaiKey,
 					...baseConfig
-				}) as any;
+				});
 
 			case 'anthropic':
 				const anthropicKey = this.getApiKey('ANTHROPIC_API_KEY');
@@ -678,9 +690,9 @@ Available slash commands:
 				message: 'Server name is required.\n\nUsage: /test-server <server_name>'
 			};
 		}
-		
+
 		const serverConfig = this.persistentConfig.mcpServers?.[serverName];
-		
+
 		if (!serverConfig) {
 			const configuredServers = Object.keys(this.persistentConfig.mcpServers || {});
 			return {
@@ -709,10 +721,10 @@ Available slash commands:
 		this.sessionApiKeys = {};
 		this.persistentConfig.apiKeys = {};
 		this.persistentConfig.lastModel = undefined;
-		
+
 		// Clear the current LLM config since we have no keys
 		this.currentLLMConfig = null;
-		
+
 		// Save the cleared config
 		SecureStorage.saveConfig(this.persistentConfig);
 
@@ -726,7 +738,7 @@ Available slash commands:
 	// Method to handle server configuration input
 	handleServerConfigInput(input: string, step: string, serverConfig?: any): CommandResult {
 		const config = serverConfig || {};
-		
+
 		switch (step) {
 			case 'name_or_json':
 				// Check if input looks like JSON
@@ -734,7 +746,7 @@ Available slash commands:
 				if (trimmedInput.startsWith('{') && trimmedInput.includes('mcpServers')) {
 					try {
 						const parsedConfig = JSON.parse(trimmedInput);
-						
+
 						// Validate JSON structure
 						if (!parsedConfig.mcpServers || typeof parsedConfig.mcpServers !== 'object') {
 							return {
@@ -742,28 +754,28 @@ Available slash commands:
 								message: 'Invalid JSON format. Expected format:\n{\n  "mcpServers": {\n    "servername": {\n      "command": "...",\n      "args": [...]\n    }\n  }\n}'
 							};
 						}
-						
+
 						const servers = parsedConfig.mcpServers;
 						const serverNames = Object.keys(servers);
-						
+
 						if (serverNames.length === 0) {
 							return {
 								type: 'error',
 								message: 'No servers found in JSON configuration.'
 							};
 						}
-						
+
 						// Check for conflicts with existing servers
 						const existingServers = this.persistentConfig.mcpServers || {};
 						const conflicts = serverNames.filter(name => existingServers[name]);
-						
+
 						if (conflicts.length > 0) {
 							return {
 								type: 'error',
 								message: `Server(s) already exist: ${conflicts.join(', ')}. Please use different names.`
 							};
 						}
-						
+
 						// Validate each server config
 						for (const [name, serverConfig] of Object.entries(servers)) {
 							const server = serverConfig as any;
@@ -774,28 +786,28 @@ Available slash commands:
 								};
 							}
 						}
-						
+
 						// All validation passed, save the servers
 						if (!this.persistentConfig.mcpServers) {
 							this.persistentConfig.mcpServers = {};
 						}
-						
+
 						// Add all servers from JSON
 						Object.assign(this.persistentConfig.mcpServers, servers);
 						SecureStorage.saveConfig(this.persistentConfig);
-						
+
 						// Auto-connect all newly configured servers
 						Object.assign(this.sessionServers, servers);
-						
+
 						const addedCount = serverNames.length;
 						const serverList = serverNames.map(name => `• ${name}`).join('\n');
-						
+
 						return {
 							type: 'success',
 							message: `✅ Configured and connected ${addedCount} server(s)!\n\n${serverList}\n\n🔄 Agent will be reinitialized with these servers - attempting to establish connections...\nUse /tools to verify the server tools are available.`,
-							data: { serversAdded: true, serverConnected: true, serverNames }
+							data: { serversAdded: true, serverConnected: true, serverNames, reinitializeAgent: true }
 						};
-						
+
 					} catch (error) {
 						return {
 							type: 'error',
@@ -803,7 +815,7 @@ Available slash commands:
 						};
 					}
 				}
-				
+
 				// Not JSON, treat as server name for interactive setup
 				if (!trimmedInput) {
 					return {
@@ -811,7 +823,7 @@ Available slash commands:
 						message: 'Server name cannot be empty.'
 					};
 				}
-				
+
 				// Check if server name already exists
 				if (this.persistentConfig.mcpServers?.[trimmedInput]) {
 					return {
@@ -819,7 +831,7 @@ Available slash commands:
 						message: `Server "${trimmedInput}" already exists. Use a different name.`
 					};
 				}
-				
+
 				config.name = trimmedInput;
 				return {
 					type: 'prompt_server_config',
@@ -834,7 +846,7 @@ Available slash commands:
 						message: 'Server name cannot be empty.'
 					};
 				}
-				
+
 				// Check if server name already exists
 				if (this.persistentConfig.mcpServers?.[input.trim()]) {
 					return {
@@ -842,7 +854,7 @@ Available slash commands:
 						message: `Server "${input.trim()}" already exists. Use a different name.`
 					};
 				}
-				
+
 				config.name = input.trim();
 				return {
 					type: 'prompt_server_config',
@@ -857,7 +869,7 @@ Available slash commands:
 						message: 'Command cannot be empty.'
 					};
 				}
-				
+
 				config.command = input.trim();
 				return {
 					type: 'prompt_server_config',
@@ -884,7 +896,7 @@ Available slash commands:
 						}
 					}
 				}
-				
+
 				return {
 					type: 'prompt_server_config',
 					message: `Server Configuration Summary:\n\nName: ${config.name}\nCommand: ${config.command}\nArgs: ${config.args.length > 0 ? config.args.join(' ') : 'none'}\nEnv: ${Object.keys(config.env).length > 0 ? Object.entries(config.env).map(([k, v]) => `${k}=${v}`).join(', ') : 'none'}\n\nConfirm to add this server? (y/n):`,
@@ -898,24 +910,24 @@ Available slash commands:
 						args: config.args,
 						env: config.env
 					};
-					
+
 					// Add server to persistent configuration (servers are configured but not automatically connected)
 					if (!this.persistentConfig.mcpServers) {
 						this.persistentConfig.mcpServers = {};
 					}
-					
+
 					this.persistentConfig.mcpServers[config.name] = serverConfig;
-					
+
 					// Save configuration
 					SecureStorage.saveConfig(this.persistentConfig);
-					
+
 					// Auto-connect the newly configured server
 					this.sessionServers[config.name] = serverConfig;
-					
+
 					return {
 						type: 'success',
 						message: `✅ Server "${config.name}" configured and connected!\n\n🔄 Agent will be reinitialized with this server - attempting to establish connection...\nUse /tools to verify the server tools are available.`,
-						data: { serverAdded: true, serverConnected: true, serverName: config.name }
+						data: { serverAdded: true, serverConnected: true, serverName: config.name, reinitializeAgent: true }
 					};
 				} else if (input.trim().toLowerCase() === 'n' || input.trim().toLowerCase() === 'no') {
 					return {
@@ -967,7 +979,7 @@ Available slash commands:
 					message: `Usage: /server connect <server_name>\n\nConfigured servers: ${configuredServers.join(', ')}`
 				};
 			}
-			
+
 			const serverName = args[1];
 			if (!serverName) {
 				return {
@@ -988,11 +1000,11 @@ Available slash commands:
 					};
 				}
 				return {
-					type: 'error', 
+					type: 'error',
 					message: `Usage: /server disconnect <server_name>\n\nConnected servers: ${connectedServers.join(', ')}`
 				};
 			}
-			
+
 			const serverName = args[1];
 			if (!serverName) {
 				return {
@@ -1012,15 +1024,8 @@ Available slash commands:
 	private handleListServers(): CommandResult {
 		const persistentServers = this.persistentConfig.mcpServers || {};
 		const connectedServers = this.sessionServers || {};
-		
+
 		let serverList = '📋 MCP Server Status:\n\n';
-		
-		// Built-in filesystem server (always connected)
-		serverList += '🔸 filesystem:\n';
-		serverList += '   Status: 🟢 Connected (built-in)\n';
-		serverList += '   Command: npx\n';
-		serverList += '   Args: -y @modelcontextprotocol/server-filesystem /tmp\n\n';
-		
 		// Custom configured servers
 		const configuredServerNames = Object.keys(persistentServers);
 		if (configuredServerNames.length === 0) {
@@ -1030,7 +1035,7 @@ Available slash commands:
 				const isConnected = connectedServers[name] !== undefined;
 				const status = isConnected ? '🟢 Connected' : '🔴 Disconnected';
 				const action = isConnected ? '/server disconnect' : '/server connect';
-				
+
 				serverList += `🔸 ${name}:\n`;
 				serverList += `   Status: ${status}\n`;
 				serverList += `   Command: ${config.command}\n`;
@@ -1075,7 +1080,7 @@ Available slash commands:
 		return {
 			type: 'success',
 			message: `✅ Connected to server "${serverName}"!\n\n🔄 Agent will be reinitialized with this server - attempting to establish connection...\nUse /tools to verify the server tools are available.`,
-			data: { serverConnected: true, serverName }
+			data: { serverConnected: true, serverName, reinitializeAgent: true }
 		};
 	}
 
@@ -1095,7 +1100,7 @@ Available slash commands:
 		return {
 			type: 'success',
 			message: `✅ Disconnected from server "${serverName}".\n\n🔄 Agent will be reinitialized without this server.`,
-			data: { serverDisconnected: true, serverName }
+			data: { serverDisconnected: true, serverName, reinitializeAgent: true }
 		};
 	}
 
@@ -1119,10 +1124,10 @@ Available slash commands:
 		};
 
 		const envVar = envVarMap[provider as keyof typeof envVarMap];
-		
+
 		// Store the API key in persistent storage
 		this.persistentConfig.apiKeys[envVar] = apiKey;
-		
+
 		// Set the model configuration
 		this.currentLLMConfig = {
 			provider: provider as any,
@@ -1140,6 +1145,88 @@ Available slash commands:
 			type: 'success',
 			message: `✅ ${provider} API key set (${maskedKey})\n🤖 Switched to ${provider}/${model}`,
 			data: { llmConfig: this.currentLLMConfig }
+		};
+	}
+
+	private handleLogs(args: string[]): CommandResult {
+		const logPath = Logger.getLogPath();
+
+		if (args.length === 0) {
+			return {
+				type: 'info',
+				message: `📋 Debug logs are written to:\n${logPath}\n\nCommands:\n  /logs path    - Show log file path\n  /logs tail    - Show recent log entries\n  /clearlogs    - Clear all logs\n\nTo view logs in real-time:\n  tail -f ${logPath}`
+			};
+		}
+
+		const subcommand = args[0];
+
+		switch (subcommand) {
+			case 'path':
+				return {
+					type: 'info',
+					message: `📁 Log file location:\n${logPath}`
+				};
+
+			case 'tail':
+				try {
+					const fs = require('fs');
+					if (!fs.existsSync(logPath)) {
+						return {
+							type: 'info',
+							message: '📋 No log file found yet. Logs will be created when the app starts logging.'
+						};
+					}
+
+					const logContent = fs.readFileSync(logPath, 'utf8');
+					const lines = logContent.split('\n').filter((line: string) => line.trim());
+					const recentLines = lines.slice(-20); // Show last 20 lines
+
+					if (recentLines.length === 0) {
+						return {
+							type: 'info',
+							message: '📋 Log file is empty.'
+						};
+					}
+
+					return {
+						type: 'info',
+						message: `📋 Recent log entries (last ${recentLines.length} lines):\n\n${recentLines.join('\n')}`
+					};
+				} catch (error) {
+					return {
+						type: 'error',
+						message: `❌ Failed to read logs: ${error instanceof Error ? error.message : 'Unknown error'}`
+					};
+				}
+
+			default:
+				return {
+					type: 'error',
+					message: `Unknown logs subcommand: ${subcommand}. Use /logs for help.`
+				};
+		}
+	}
+
+	private handleClearLogs(): CommandResult {
+		try {
+			Logger.clearLogs();
+			Logger.info('Logs cleared by user command');
+			return {
+				type: 'success',
+				message: '✅ Debug logs cleared successfully.'
+			};
+		} catch (error) {
+			return {
+				type: 'error',
+				message: `❌ Failed to clear logs: ${error instanceof Error ? error.message : 'Unknown error'}`
+			};
+		}
+	}
+
+	private handleHistory(): CommandResult {
+		return {
+			type: 'info',
+			message: `📜 Input History Navigation:\n\n🔼 Arrow Up   - Navigate to previous inputs\n🔽 Arrow Down - Navigate to newer inputs\n\n💡 Tips:\n• Your input history is automatically saved during the session\n• Use ↑ to recall previous commands and messages\n• Use ↓ to navigate back to newer inputs\n• History is reset when you restart the CLI\n\n🎯 Try it now: Press the up arrow key in the input box!`
 		};
 	}
 }

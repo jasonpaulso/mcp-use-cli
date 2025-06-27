@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 
 const CONFIG_DIR = join(homedir(), '.mcp-use-cli');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
-const SALT = 'mcp-use-cli-salt'; // In production, this should be more secure
+const SALT = 'mcp-use-cli-salt';
 
 export interface StoredConfig {
 	apiKeys: Record<string, string>;

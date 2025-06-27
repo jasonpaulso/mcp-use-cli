@@ -19,14 +19,14 @@ A CLI tool for interacting with Model Context Protocol (MCP) servers using natur
 ## Install
 
 ```bash
-$ npm install --global mcp-use-cli
+$ npm install --global @mcp-use/cli
 ```
 
 ## Quick Start
 
 1. **Install and run**:
    ```bash
-   $ npm install --global mcp-use-cli
+   $ npm install --global @mcp-use/cli
    $ mcp-use-cli
    ```
 
