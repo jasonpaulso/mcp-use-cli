@@ -177,7 +177,7 @@ export default function App() {
 
 			try {
 				// Import CommandHandler to access handleServerConfigInput
-				const result = await cliService.sendMessage(
+				const stream = cliService.sendMessage(
 					trimmedInput,
 					false,
 					'',
@@ -187,40 +187,44 @@ export default function App() {
 					currentServerConfig,
 				);
 
-				Logger.debug('Server config result received', { result });
+				for await (const result of stream) {
+					Logger.debug('Server config result received', { result });
 
-				if (result.commandResult) {
-					// Check if we're continuing server config or done
-					if (
-						result.commandResult.type === 'prompt_server_config' &&
-						result.commandResult.data
-					) {
-						setServerConfigStep(result.commandResult.data.step);
-						setCurrentServerConfig(result.commandResult.data.config);
-					} else {
-						// Server config is done
-						setIsWaitingForServerConfig(false);
-						setServerConfigStep('');
-						setCurrentServerConfig(null);
+					if (result.commandResult) {
+						// Check if we're continuing server config or done
+						if (
+							result.commandResult.type === 'prompt_server_config' &&
+							result.commandResult.data
+						) {
+							setServerConfigStep(result.commandResult.data.step);
+							setCurrentServerConfig(result.commandResult.data.config);
+						} else {
+							// Server config is done
+							setIsWaitingForServerConfig(false);
+							setServerConfigStep('');
+							setCurrentServerConfig(null);
 
-						// Update connected servers if servers were connected or disconnected
-						if (result.commandResult.data?.reinitializeAgent) {
-							await cliService.initializeAgent();
-							setConnectedServers(cliService.getConnectedServers());
+							// Update connected servers if servers were connected or disconnected
+							if (result.commandResult.data?.reinitializeAgent) {
+								await cliService.initializeAgent();
+								setConnectedServers(cliService.getConnectedServers());
+							}
 						}
+						const commandMessage: CommandMessage = {
+							id: (Date.now() + 1).toString(),
+							role: 'command',
+							content: result.response || '',
+							commandResult: result.commandResult,
+							timestamp: new Date(),
+						};
+
+						setMessages(prev => [...prev, commandMessage]);
 					}
-					const commandMessage: CommandMessage = {
-						id: (Date.now() + 1).toString(),
-						role: 'command',
-						content: result.response,
-						commandResult: result.commandResult,
-						timestamp: new Date(),
-					};
 
-					setMessages(prev => [...prev, commandMessage]);
+					if (result.done) {
+						setIsLoading(false);
+					}
 				}
-
-				setIsLoading(false);
 			} catch (error) {
 				Logger.error('Server config error', {
 					error: error instanceof Error ? error.message : 'Unknown error',
@@ -266,40 +270,43 @@ export default function App() {
 			setIsLoading(true);
 
 			try {
-				const result = await cliService.sendMessage(
+				const stream = cliService.sendMessage(
 					trimmedInput.trim(),
 					true,
 					pendingProvider,
 					pendingModel,
 				);
 
-				Logger.debug('API key result received', {
-					success: !!result.commandResult?.data?.llmConfig,
-				});
+				for await (const result of stream) {
+					Logger.debug('API key result received', {
+						success: !!result.commandResult?.data?.llmConfig,
+					});
 
-				if (result.commandResult) {
-					const commandMessage: CommandMessage = {
-						id: (Date.now() + 1).toString(),
-						role: 'command',
-						content: result.response,
-						commandResult: result.commandResult,
-						timestamp: new Date(),
-					};
+					if (result.commandResult) {
+						const commandMessage: CommandMessage = {
+							id: (Date.now() + 1).toString(),
+							role: 'command',
+							content: result.response || '',
+							commandResult: result.commandResult,
+							timestamp: new Date(),
+						};
 
-					setMessages(prev => [...prev, commandMessage]);
+						setMessages(prev => [...prev, commandMessage]);
 
-					// Update current model if successful
-					if (result.commandResult.data?.llmConfig) {
-						setCurrentModel(cliService.getCurrentModel());
+						// Update current model if successful
+						if (result.commandResult.data?.llmConfig) {
+							setCurrentModel(cliService.getCurrentModel());
+						}
+
+						// Reset API key input state
+						setIsWaitingForApiKey(false);
+						setPendingProvider('');
+						setPendingModel('');
 					}
-
-					// Reset API key input state
-					setIsWaitingForApiKey(false);
-					setPendingProvider('');
-					setPendingModel('');
+					if (result.done) {
+						setIsLoading(false);
+					}
 				}
-
-				setIsLoading(false);
 			} catch (error) {
 				Logger.error('API key error', {
 					error: error instanceof Error ? error.message : 'Unknown error',
@@ -339,62 +346,89 @@ export default function App() {
 		setIsLoading(true);
 
 		try {
-			const result = await cliService.sendMessage(trimmedInput);
+			const stream = cliService.sendMessage(trimmedInput);
 
-			Logger.debug('Message result received', {
-				isCommand: result.isCommand,
-				hasCommandResult: !!result.commandResult,
-				toolCallsCount: result.toolCalls?.length || 0,
-			});
+			let assistantMessageId: string | null = null;
 
-			if (result.isCommand && result.commandResult) {
-				// Check if we need to prompt for API key
-				if (result.commandResult.data?.reinitializeAgent) {
-					await cliService.initializeAgent();
-					setConnectedServers(cliService.getConnectedServers());
+			for await (const chunk of stream) {
+				Logger.debug('Message chunk received', {
+					isCommand: chunk.isCommand,
+					hasContent: !!chunk.response,
+					toolCallsCount: chunk.toolCalls?.length || 0,
+				});
+
+				if (chunk.isCommand && chunk.commandResult) {
+					// Check if we need to prompt for API key
+					if (chunk.commandResult.data?.reinitializeAgent) {
+						await cliService.initializeAgent();
+						setConnectedServers(cliService.getConnectedServers());
+					}
+
+					// Check if we need to prompt for API key
+					if (
+						chunk.commandResult.type === 'prompt_key' &&
+						chunk.commandResult.data
+					) {
+						setIsWaitingForApiKey(true);
+						setPendingProvider(chunk.commandResult.data.provider);
+						setPendingModel(chunk.commandResult.data.model);
+					} else if (
+						chunk.commandResult.type === 'prompt_server_config' &&
+						chunk.commandResult.data
+					) {
+						setIsWaitingForServerConfig(true);
+						setServerConfigStep(chunk.commandResult.data.step);
+						setCurrentServerConfig(chunk.commandResult.data.config || null);
+					} else if (chunk.commandResult.data?.hasOwnProperty('llmConfig')) {
+						// Update current model if it changed (including null for clearkeys)
+						setCurrentModel(cliService.getCurrentModel());
+					}
+					const commandMessage: CommandMessage = {
+						id: (Date.now() + 1).toString(),
+						role: 'command',
+						content: chunk.response || '',
+						commandResult: chunk.commandResult,
+						timestamp: new Date(),
+					};
+					setMessages(prev => [...prev, commandMessage]);
+				} else {
+					// Handle streaming agent response
+					if (chunk.toolCalls && chunk.toolCalls.length > 0) {
+						setMessages(prev => [...prev, ...chunk.toolCalls!]);
+					}
+
+					if (chunk.response) {
+						if (assistantMessageId === null) {
+							// First chunk of an assistant message
+							const assistantMessage: Message = {
+								id: (Date.now() + 1).toString(),
+								role: 'assistant',
+								content: chunk.response,
+								timestamp: new Date(),
+							};
+							assistantMessageId = assistantMessage.id;
+							setMessages(prev => [...prev, assistantMessage]);
+						} else {
+							// Subsequent chunks: find and update the message
+							setMessages(prev =>
+								prev.map(msg => {
+									if (msg.id === assistantMessageId && msg.role === 'assistant') {
+										return {
+											...msg,
+											content: msg.content + chunk.response,
+										};
+									}
+									return msg;
+								}),
+							);
+						}
+					}
 				}
 
-				// Check if we need to prompt for API key
-				if (
-					result.commandResult.type === 'prompt_key' &&
-					result.commandResult.data
-				) {
-					setIsWaitingForApiKey(true);
-					setPendingProvider(result.commandResult.data.provider);
-					setPendingModel(result.commandResult.data.model);
-				} else if (
-					result.commandResult.type === 'prompt_server_config' &&
-					result.commandResult.data
-				) {
-					setIsWaitingForServerConfig(true);
-					setServerConfigStep(result.commandResult.data.step);
-					setCurrentServerConfig(result.commandResult.data.config || null);
-				} else if (result.commandResult.data?.hasOwnProperty('llmConfig')) {
-					// Update current model if it changed (including null for clearkeys)
-					setCurrentModel(cliService.getCurrentModel());
+				if (chunk.done) {
+					setIsLoading(false);
 				}
-				const commandMessage: CommandMessage = {
-					id: (Date.now() + 1).toString(),
-					role: 'command',
-					content: result.response,
-					commandResult: result.commandResult,
-					timestamp: new Date(),
-				};
-				setMessages(prev => [...prev, commandMessage]);
-			} else {
-				// Handle regular assistant response
-				const assistantMessage: Message = {
-					id: (Date.now() + 1).toString(),
-					role: 'assistant',
-					content: result.response,
-					timestamp: new Date(),
-				};
-
-				// Add assistant message and any tool calls
-				setMessages(prev => [...prev, assistantMessage, ...result.toolCalls]);
 			}
-
-			setIsLoading(false);
 		} catch (error) {
 			Logger.error('Message processing error', {
 				error: error instanceof Error ? error.message : 'Unknown error',
@@ -442,7 +476,7 @@ export default function App() {
 
 				{!initializationError && messages.length === 0 && !isLoading && (
 					<Box marginBottom={1} flexDirection="column">
-						<AsciiLogo/>
+						<AsciiLogo />
 						<Text color="gray">Welcome to MCP-Use CLI!</Text>
 						{currentModel.includes('No') ? (
 							<Box flexDirection="column">

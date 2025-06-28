@@ -54,8 +54,8 @@ export const ToolCallRenderer = ({message}: {message: ToolCall}) => {
 					</Text>
 				</Box>
 				<Box flexDirection="column" flexGrow={1}>
-					<Text wrap="wrap"> Input: {message.tool_input.toString()} </Text>
-					<Text wrap="wrap"> Output:{message.tool_output.toString()} </Text>
+					<Text wrap="wrap"> Input: {message.tool_input.toString().slice(0, 50)} </Text>
+					<Text wrap="wrap"> Output:{message.tool_output.toString().slice(0, 50)} </Text>
 				</Box>
 			</Box>
 		</>

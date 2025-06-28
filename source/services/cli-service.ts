@@ -89,7 +89,7 @@ export class CLIService {
 	 * @param serverConfig The server configuration object being built.
 	 * @returns A promise that resolves to the result of the message processing.
 	 */
-	async sendMessage(
+	async *sendMessage(
 		message: string,
 		isApiKeyInput?: boolean,
 		pendingProvider?: string,
@@ -97,29 +97,31 @@ export class CLIService {
 		isServerConfigInput?: boolean,
 		serverConfigStep?: string,
 		serverConfig?: any,
-	): Promise<{
-		response: string;
-		toolCalls: ToolCall[];
+	): AsyncGenerator<{
+		response?: string;
+		toolCalls?: ToolCall[];
 		isCommand?: boolean;
 		commandResult?: CommandResult;
+		done: boolean;
 	}> {
-		// Handle server configuration input
+		// Handle server configuration input (non-streaming)
 		if (isServerConfigInput && serverConfigStep) {
 			const commandResult = this.commandHandler.handleServerConfigInput(
 				message.trim(),
 				serverConfigStep,
 				serverConfig,
 			);
-
-			return {
+			yield {
 				response: commandResult.message,
 				toolCalls: [],
 				isCommand: true,
 				commandResult,
+				done: true,
 			};
+			return;
 		}
 
-		// Handle API key input
+		// Handle API key input (non-streaming)
 		if (isApiKeyInput && pendingProvider && pendingModel) {
 			const commandResult = this.commandHandler.handleApiKeyInput(
 				message.trim(),
@@ -132,14 +134,16 @@ export class CLIService {
 				await this.initializeAgent();
 			}
 
-			return {
+			yield {
 				response: commandResult.message,
 				toolCalls: [],
 				isCommand: true,
 				commandResult,
+				done: true,
 			};
+			return;
 		}
-		// Check if it's a slash command
+		// Check if it's a slash command (non-streaming)
 		if (this.commandHandler.isCommand(message)) {
 			try {
 				const commandResult = await this.commandHandler.handleCommand(message);
@@ -180,12 +184,14 @@ export class CLIService {
 						});
 					}
 
-					return {
+					yield {
 						response: toolsMessage,
 						toolCalls: [],
 						isCommand: true,
 						commandResult: { type: 'info', message: toolsMessage },
+						done: true,
 					};
+					return;
 				}
 
 				// If the command changed the LLM config, reinitialize the agent
@@ -193,57 +199,74 @@ export class CLIService {
 					await this.initializeAgent();
 				}
 
-				return {
+				yield {
 					response: commandResult.message,
 					toolCalls: [],
 					isCommand: true,
 					commandResult,
+					done: true,
 				};
+				return;
 			} catch (error) {
-				return {
+				yield {
 					response: `Command error: ${error instanceof Error ? error.message : 'Unknown error'
 						}`,
 					toolCalls: [],
 					isCommand: true,
 					commandResult: { type: 'error', message: 'Command failed' },
+					done: true,
 				};
+				return;
 			}
 		}
 
 		if (!this.agentService.isReady()) {
 			const availableProviders = this.llmService.getAvailableProviders();
 			if (availableProviders.length === 0) {
-				return {
+				yield {
 					response: `🤖 Choose a model to get started!\n\nTry one of these popular options:\n• /model openai gpt-4o-mini\n• /model anthropic claude-3-5-sonnet-20241022\n• /model google gemini-1.5-pro\n\nThe CLI will help you set up the API key when needed.\nUse /models to see all available models.`,
 					toolCalls: [],
+					done: true,
 				};
 			} else {
 				const firstProvider = availableProviders[0];
 				const exampleModel = firstProvider
 					? this.getExampleModel(firstProvider)
 					: 'model-name';
-				return {
+				yield {
 					response: `🔧 No model selected.\n\nAvailable providers: ${availableProviders.join(
 						', ',
 					)}\n\nUse /model <provider> <model> to get started.\n\nExample: /model ${firstProvider} ${exampleModel}`,
 					toolCalls: [],
+					done: true,
 				};
 			}
+			return;
 		}
 
+		// Handle agent messages (streaming)
 		try {
-			const result = await this.agentService.sendMessage(message);
+			const generator = this.agentService.sendMessage(message);
 
-			return {
-				...result,
-				isCommand: false,
-			};
+			for await (const chunk of generator) {
+				yield {
+					response: chunk.response,
+					toolCalls: chunk.toolCalls,
+					isCommand: false,
+					done: false,
+				};
+			}
+			yield { done: true };
 		} catch (error) {
 			Logger.error('Error sending message via Agent service', {
 				error: error instanceof Error ? error.message : 'Unknown error',
 				stack: error instanceof Error ? error.stack : undefined,
 			});
-			throw error;
+			yield {
+				response: `Error: ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
+				done: true,
+			};
 		}
 	}
 

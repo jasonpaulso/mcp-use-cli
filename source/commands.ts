@@ -549,7 +549,7 @@ Available slash commands:
 
 					return {
 						type: 'success',
-						message: `✅ ${result.message}\n\n🔄 Agent will be reinitialized with these servers - attempting to establish connections...\nUse /tools to verify the server tools are available.`,
+						message: `${result.message}. Reinitializing agent.`,
 						data: result.data,
 					};
 				}
@@ -648,7 +648,7 @@ Available slash commands:
 
 					return {
 						type: 'success',
-						message: `✅ ${result.message}\n\n🔄 Agent will be reinitialized with this server - attempting to establish connection...\nUse /tools to verify the server tools are available.`,
+						message: `${result.message}. Reinitializing agent.`,
 						data: result.data,
 					};
 				} else if (
@@ -807,7 +807,7 @@ Available slash commands:
 
 		return {
 			type: 'success',
-			message: `✅ ${result.message}\n\n🔄 Agent will be reinitialized with this server - attempting to establish connection...\nUse /tools to verify the server tools are available.`,
+			message: `${result.message}. Reinitializing agent.`,
 			data: result.data,
 		};
 	}
@@ -823,7 +823,7 @@ Available slash commands:
 
 		return {
 			type: 'success',
-			message: `✅ ${result.message}\n\n🔄 Agent will be reinitialized without this server.`,
+			message: `${result.message}. Reinitializing agent.`,
 			data: result.data,
 		};
 	}

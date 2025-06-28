@@ -66,25 +66,43 @@ export class AgentService {
 		return this.agent !== null;
 	}
 
-	async sendMessage(message: string): Promise<{
-		response: string;
-		toolCalls: ToolCall[];
+	async *sendMessage(message: string): AsyncGenerator<{
+		response?: string;
+		toolCalls?: ToolCall[];
 	}> {
 		if (!this.agent) {
 			throw new Error('Agent not initialized');
 		}
 
 		try {
-			const result = await this.agent.run(message);
+			// The stream method yields AgentSteps for each tool call and returns the final string response.
+			const generator = this.agent.stream(message);
 
-			// Note: Tool call extraction from the result is not yet implemented in mcp-use.
-			// This is a placeholder for future implementation.
-			const toolCalls: ToolCall[] = [];
+			let result = await generator.next();
 
-			return {
-				response: result || 'No response received',
-				toolCalls,
-			};
+			while (!result.done) {
+				const agentStep: any = result.value; // This is of type AgentStep
+
+				if (agentStep.action) {
+					// Map AgentStep to our internal ToolCall type
+					const toolCall: ToolCall = {
+						id: `${agentStep.action.tool}-${Date.now()}`, // Create a simple unique ID
+						role: 'tool',
+						tool_name: agentStep.action.tool,
+						tool_input: agentStep.action.toolInput,
+						tool_output: agentStep.observation,
+					};
+
+					yield { toolCalls: [toolCall] };
+				}
+				result = await generator.next();
+			}
+
+			// When the generator is done, the final response is in result.value
+			const finalResponse: string = result.value;
+			if (finalResponse) {
+				yield { response: finalResponse, toolCalls: [] };
+			}
 		} catch (error) {
 			Logger.error('Error sending message to MCP agent', {
 				error: error instanceof Error ? error.message : 'Unknown error',
