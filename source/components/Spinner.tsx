@@ -20,17 +20,9 @@ type SpinnerProps = {
 };
 
 const mcpuseSpinner = {
-    "interval": 80,
-    "frames": [
-        "m",
-        "c",
-        "p",
-        "u",
-        "s",
-        "e",
-    ]
-}
-
+	interval: 80,
+	frames: ['m', 'c', 'p', 'u', 's', 'e'],
+};
 
 /**
  * Spinner.
@@ -40,11 +32,9 @@ function Spinner({type = 'mcpuse'}: SpinnerProps) {
 	let spinner;
 	if (type === 'mcpuse') {
 		spinner = mcpuseSpinner;
+	} else {
+		spinner = spinners[type];
 	}
-    else {
-        spinner = spinners[type];
-    }
-
 
 	useEffect(() => {
 		const timer = setInterval(() => {

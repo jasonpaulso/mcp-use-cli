@@ -2,12 +2,7 @@ import {Logger} from './logger.js';
 import {LLMService} from './services/llm-service.js';
 import {MCPConfigService} from './services/mcp-config-service.js';
 import {AgentService} from './services/agent-service.js';
-
-export interface CommandResult {
-	type: 'success' | 'error' | 'info' | 'prompt_key' | 'prompt_server_config';
-	message: string;
-	data?: any;
-}
+import {CommandResult} from './types.js';
 
 export class CommandHandler {
 	private llmService: LLMService;
