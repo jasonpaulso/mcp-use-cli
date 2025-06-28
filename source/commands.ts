@@ -764,35 +764,18 @@ Available slash commands:
 	private handleListServers(): CommandResult {
 		const serverStatus = this.mcpService.getServerStatus();
 
-		let serverList = '📋 MCP Server Status:\n\n';
 		if (serverStatus.length === 0) {
-			serverList +=
-				'No custom servers configured.\n\nUse /server add to configure servers, then /server connect <name> to connect.';
-		} else {
-			for (const server of serverStatus) {
-				const status = server.isConnected ? '🟢 Connected' : '🔴 Disconnected';
-				const action = server.isConnected
-					? '/server disconnect'
-					: '/server connect';
-
-				serverList += `🔸 ${server.name}:\n`;
-				serverList += `   Status: ${status}\n`;
-				serverList += `   Command: ${server.config.command}\n`;
-				if (server.config.args && server.config.args.length > 0) {
-					serverList += `   Args: ${server.config.args.join(' ')}\n`;
-				}
-				if (server.config.env && Object.keys(server.config.env).length > 0) {
-					serverList += `   Env: ${Object.entries(server.config.env)
-						.map(([k, v]) => `${k}=${v}`)
-						.join(', ')}\n`;
-				}
-				serverList += `   Action: ${action} ${server.name}\n\n`;
-			}
+			return {
+				type: 'info',
+				message:
+					'No custom servers configured.\n\nUse /server add to configure servers, then /server connect <name> to connect.',
+			};
 		}
 
 		return {
-			type: 'info',
-			message: serverList.trim(),
+			type: 'list_servers',
+			message: 'MCP Server Status:',
+			data: { servers: serverStatus },
 		};
 	}
 

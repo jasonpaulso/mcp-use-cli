@@ -151,44 +151,16 @@ export class CLIService {
 				// Handle special commands that need MCP service interaction
 				if (commandResult.data?.checkTools) {
 					const toolsResult = await this.agentService.getAvailableTools();
-					let toolsMessage = '🔧 Available MCP Tools:\n\n';
-
-					if (toolsResult.error) {
-						toolsMessage += `❌ Error: ${toolsResult.error}\n\n`;
-						toolsMessage += '💡 This might indicate:\n';
-						toolsMessage += '• MCP servers failed to start\n';
-						toolsMessage += '• Agent fell back to default LLM tools\n';
-						toolsMessage += '• Connection issues with configured servers\n\n';
-						toolsMessage += 'Check console logs for more details.';
-					} else if (toolsResult.tools.length === 0) {
-						toolsMessage += '❌ No MCP tools found\n\n';
-						toolsMessage += '💡 This suggests:\n';
-						toolsMessage += '• MCP servers failed to start or connect\n';
-						toolsMessage += '• Agent fell back to default LangChain tools\n';
-						toolsMessage += '• Server packages may not be installed\n\n';
-						toolsMessage += '🔍 Debug steps:\n';
-						toolsMessage += '1. Check console logs for errors\n';
-						toolsMessage += '2. Test server manually: /test-server <name>\n';
-						toolsMessage +=
-							'3. Ask agent "Which tools do you have?" to see fallback tools\n\n';
-						toolsMessage +=
-							'⚠️ If you see Wolfram/Wikipedia tools, MCP integration failed completely.';
-					} else {
-						toolsMessage += `✅ Found ${toolsResult.tools.length} MCP tools:\n\n`;
-						toolsResult.tools.forEach((tool: any, index) => {
-							toolsMessage += `${index + 1}. **${tool.name || 'Unknown'}**`;
-							if (tool.description) {
-								toolsMessage += `: ${tool.description}`;
-							}
-							toolsMessage += '\n';
-						});
-					}
 
 					yield {
-						response: toolsMessage,
+						response: 'Available MCP Tools',
 						toolCalls: [],
 						isCommand: true,
-						commandResult: { type: 'info', message: toolsMessage },
+						commandResult: {
+							type: 'list_tools',
+							message: 'Available MCP Tools',
+							data: toolsResult,
+						},
 						done: true,
 					};
 					return;

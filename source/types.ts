@@ -6,8 +6,21 @@ export type CommandMessage = {
 	timestamp: Date;
 };
 
+export interface ServerStatus {
+	name: string;
+	isConnected: boolean;
+	config: any;
+}
+
 export interface CommandResult {
-	type: 'success' | 'error' | 'info' | 'prompt_key' | 'prompt_server_config';
+	type:
+	| 'success'
+	| 'error'
+	| 'info'
+	| 'prompt_key'
+	| 'prompt_server_config'
+	| 'list_servers'
+	| 'list_tools';
 	message: string;
 	data?: any;
 }
