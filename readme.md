@@ -25,25 +25,27 @@ $ npm install --global @mcp-use/cli
 ## Quick Start
 
 1. **Install and run**:
+
    ```bash
    $ npm install --global @mcp-use/cli
    $ mcp-use-cli
    ```
 
 2. **Choose your model** (CLI handles API key setup automatically):
+
    ```bash
    # Just pick a model - that's it!
    /model openai gpt-4o-mini
    /model anthropic claude-3-5-sonnet-20241022
    /model google gemini-1.5-pro
-   
+
    # CLI will prompt: "Please enter your OPENAI API key:"
    # Paste your key and start chatting immediately!
    ```
 
 3. **Get API keys** when prompted from:
    - [OpenAI](https://platform.openai.com/api-keys)
-   - [Anthropic](https://console.anthropic.com/) 
+   - [Anthropic](https://console.anthropic.com/)
    - [Google AI](https://aistudio.google.com/app/apikey)
    - [Mistral](https://console.mistral.ai/)
 
@@ -52,6 +54,7 @@ $ npm install --global @mcp-use/cli
 ## Alternative Setup
 
 If you prefer environment variables:
+
 ```bash
 export OPENAI_API_KEY=your_key_here
 export ANTHROPIC_API_KEY=your_key_here
@@ -90,18 +93,22 @@ By default, the CLI connects to a filesystem MCP server in `/tmp`. You can provi
 
 ```json
 {
-  "servers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/directory"],
-      "env": {}
-    },
-    "other-server": {
-      "command": "your-mcp-server-command",
-      "args": ["--arg1", "value1"],
-      "env": {}
-    }
-  }
+	"servers": {
+		"filesystem": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-filesystem",
+				"/path/to/directory"
+			],
+			"env": {}
+		},
+		"other-server": {
+			"command": "your-mcp-server-command",
+			"args": ["--arg1", "value1"],
+			"env": {}
+		}
+	}
 }
 ```
 
@@ -144,6 +151,7 @@ Switch LLM providers and configure settings using slash commands (similar to Cla
 ## Architecture
 
 This CLI uses:
+
 - **Frontend**: React + Ink for the terminal UI
 - **Agent**: mcp-use MCPAgent for LLM + MCP integration
 - **LLM**: OpenAI GPT-4o-mini

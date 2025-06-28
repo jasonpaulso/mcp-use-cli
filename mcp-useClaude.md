@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development
+
 ```bash
 npm run build        # Build TypeScript to dist/ (always run before testing)
 npm run watch        # Watch mode for development
@@ -13,6 +14,7 @@ npm run lint:fix     # Fix linting issues automatically
 ```
 
 ### Testing Examples
+
 ```bash
 # Run individual examples (build first!)
 npm run example:chat       # Interactive chat with MCP tools
@@ -22,6 +24,7 @@ npm run example:everything # Test all MCP features
 ```
 
 ### Release Process
+
 ```bash
 npm run release       # Patch release (0.0.x)
 npm run release:minor # Minor release (0.x.0)
@@ -35,14 +38,17 @@ This is a unified MCP (Model Context Protocol) client library that bridges LLMs 
 ### Core Components
 
 1. **MCPClient** (`src/client.ts`): Main entry point, manages multiple MCP sessions
+
    - Creates from config dict or JSON file
    - Handles server selection and session management
 
 2. **MCPSession** (`src/session.ts`): Individual MCP server connection
+
    - Manages tool execution and resource access
    - Supports stdio, HTTP/SSE, and WebSocket connections
 
 3. **MCPAgent** (`src/agents/MCPAgent.ts`): LLM + MCP tools orchestration
+
    - Executes multi-step tasks using LangChain
    - Handles tool safety and execution limits
 
@@ -51,16 +57,19 @@ This is a unified MCP (Model Context Protocol) client library that bridges LLMs 
    - Handles schema conversion and validation
 
 ### Connection Flow
+
 ```
 LLM → MCPAgent → MCPClient → MCPSession → Connector → MCP Server
 ```
 
 ### Configuration Pattern
+
 MCP servers are configured in a dictionary format:
+
 ```typescript
 {
   mcpServers: {
-    serverName: { 
+    serverName: {
       command: 'command',
       args: ['arg1', 'arg2'],
       env: { KEY: 'value' }

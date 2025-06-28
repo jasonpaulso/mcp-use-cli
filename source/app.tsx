@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import React, {useState, useEffect, useCallback} from 'react';
+import {Box, Text, useInput, useStdout} from 'ink';
 import BigText from 'ink-big-text';
-import { mcpService, MCPMessage, MCPToolCall } from './mcp-service.js';
-import { CommandResult } from './commands.js';
-import { Logger } from './logger.js';
-import { InputPrompt } from './InputPrompt.js';
+import {mcpService, MCPMessage, MCPToolCall} from './mcp-service.js';
+import {CommandResult} from './commands.js';
+import {Logger} from './logger.js';
+import {InputPrompt} from './components/InputPrompt.js';
+import Spinner from './components/Spinner.js';
+import AsciiLogo from './components/AsciiLogo.js';
 
 type Message = MCPMessage;
 type ToolCall = MCPToolCall;
@@ -17,71 +19,84 @@ type CommandMessage = {
 	timestamp: Date;
 };
 
-
-const MessageRenderer = ({ message }: { message: Message | ToolCall | CommandMessage }) => {
+const MessageRenderer = ({
+	message,
+}: {
+	message: Message | ToolCall | CommandMessage;
+}) => {
 	switch (message.role) {
-		case "tool":
-			return <ToolCallRenderer message={message as ToolCall} />
-		case "user":
-			return <UserMessageRenderer message={message as Message} />
-		case "assistant":
-			return <AssistantMessageRenerer message={message as Message} />
-		case "command":
-			return <CommandMessageRenderer message={message as CommandMessage} />
+		case 'tool':
+			return <ToolCallRenderer message={message as ToolCall} />;
+		case 'user':
+			return <UserMessageRenderer message={message as Message} />;
+		case 'assistant':
+			return <AssistantMessageRenerer message={message as Message} />;
+		case 'command':
+			return <CommandMessageRenderer message={message as CommandMessage} />;
 		default:
 			return null;
 	}
-}
-const UserMessageRenderer = ({ message }: { message: Message }) => {
-	return <>
-		<Box key={message.id} marginBottom={1}>
-			<Box marginRight={1}>
-				<Text color={'green'} bold>
-					'❯'
-				</Text>
+};
+const UserMessageRenderer = ({message}: {message: Message}) => {
+	return (
+		<>
+			<Box key={message.id} marginBottom={1}>
+				<Box marginRight={1}>
+					<Text color={'green'} bold>
+						'❯'
+					</Text>
+				</Box>
+				<Box flexDirection="column" flexGrow={1}>
+					<Text wrap="wrap">{message.content}</Text>
+				</Box>
 			</Box>
-			<Box flexDirection="column" flexGrow={1}>
-				<Text wrap="wrap">{message.content}</Text>
-			</Box>
-		</Box>
-	</>
-}
+		</>
+	);
+};
 
-const AssistantMessageRenerer = ({ message }: { message: Message }) => {
-	return (<>
-		<Box key={message.id} marginBottom={1}>
-			<Box marginRight={1}>
-				<Text color={'blue'} bold>
-					'◦'
-				</Text>
+const AssistantMessageRenerer = ({message}: {message: Message}) => {
+	return (
+		<>
+			<Box key={message.id} marginBottom={1}>
+				<Box marginRight={1}>
+					<Text color={'blue'} bold>
+						'◦'
+					</Text>
+				</Box>
+				<Box flexDirection="column" flexGrow={1}>
+					<Text wrap="wrap">{message.content}</Text>
+				</Box>
 			</Box>
-			<Box flexDirection="column" flexGrow={1}>
-				<Text wrap="wrap">{message.content}</Text>
+		</>
+	);
+};
+
+const ToolCallRenderer = ({message}: {message: ToolCall}) => {
+	return (
+		<>
+			<Box
+				key={message.id}
+				marginBottom={1}
+				borderStyle={'round'}
+				flexDirection="column"
+				gap={1}
+			>
+				<Box marginRight={1}>
+					<Text color={'white'} bold>
+						🔨 Tool: {message.tool_name}
+					</Text>
+				</Box>
+				<Box flexDirection="column" flexGrow={1}>
+					<Text wrap="wrap"> Input: {message.tool_input.toString()} </Text>
+					<Text wrap="wrap"> Output:{message.tool_output.toString()} </Text>
+				</Box>
 			</Box>
-		</Box>
-	</>)
-}
+		</>
+	);
+};
 
-
-const ToolCallRenderer = ({ message }: { message: ToolCall }) => {
-	return <>
-		<Box key={message.id} marginBottom={1} borderStyle={"round"} flexDirection='column' gap={1}>
-			<Box marginRight={1}>
-				<Text color={'white'} bold>
-					🔨 Tool: {message.tool_name}
-				</Text>
-			</Box>
-			<Box flexDirection="column" flexGrow={1}>
-				<Text wrap="wrap"> Input: {message.tool_input.toString()} </Text>
-				<Text wrap="wrap"> Output:{message.tool_output.toString()} </Text>
-
-			</Box>
-		</Box>
-	</>
-}
-
-const CommandMessageRenderer = ({ message }: { message: CommandMessage }) => {
-	const { commandResult } = message;
+const CommandMessageRenderer = ({message}: {message: CommandMessage}) => {
+	const {commandResult} = message;
 	let icon = '💻';
 	let color = 'cyan';
 
@@ -99,42 +114,47 @@ const CommandMessageRenderer = ({ message }: { message: CommandMessage }) => {
 		color = 'blue';
 	}
 
-	return <>
-		<Box key={message.id} marginBottom={1}>
-			<Box marginRight={1}>
-				<Text color={color} bold>
-					{icon}
-				</Text>
+	return (
+		<>
+			<Box key={message.id} marginBottom={1}>
+				<Box marginRight={1}>
+					<Text color={color} bold>
+						{icon}
+					</Text>
+				</Box>
+				<Box flexDirection="column" flexGrow={1}>
+					<Text wrap="wrap" color={color}>
+						{message.content}
+					</Text>
+				</Box>
 			</Box>
-			<Box flexDirection="column" flexGrow={1}>
-				<Text wrap="wrap" color={color}>{message.content}</Text>
-			</Box>
-		</Box>
-	</>
-}
-
-type Props = {
-	name?: string;
+		</>
+	);
 };
 
-export default function App({ name }: Props) {
-	const [messages, setMessages] = useState<(Message | ToolCall | CommandMessage)[]>([]);
+
+export default function App() {
+	const [messages, setMessages] = useState<
+		(Message | ToolCall | CommandMessage)[]
+	>([]);
 	const [input, setInput] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 	const [showInput, setShowInput] = useState(false);
 	const [initializationError, setInitializationError] = useState<string>('');
-	const [currentModel, setCurrentModel] = useState<string>('openai/gpt-4o-mini');
+	const [currentModel, setCurrentModel] =
+		useState<string>('openai/gpt-4o-mini');
 	const [connectedServers, setConnectedServers] = useState<string[]>([]);
 	const [isWaitingForApiKey, setIsWaitingForApiKey] = useState(false);
 	const [pendingProvider, setPendingProvider] = useState<string>('');
 	const [pendingModel, setPendingModel] = useState<string>('');
-	const [isWaitingForServerConfig, setIsWaitingForServerConfig] = useState(false);
+	const [isWaitingForServerConfig, setIsWaitingForServerConfig] =
+		useState(false);
 	const [serverConfigStep, setServerConfigStep] = useState<string>('');
 	const [currentServerConfig, setCurrentServerConfig] = useState<any>(null);
 	const [inputHistory, setInputHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState<number>(-1);
 	const [tempInput, setTempInput] = useState<string>('');
-	const { stdout } = useStdout();
+	const {stdout} = useStdout();
 
 	// Initialize MCP service on component mount
 	useEffect(() => {
@@ -148,15 +168,21 @@ export default function App({ name }: Props) {
 
 				Logger.info('MCP service initialized successfully', {
 					model,
-					connectedServers: servers
+					connectedServers: servers,
 				});
 
 				setCurrentModel(model);
 				setConnectedServers(servers);
 				setShowInput(true);
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to initialize MCP service';
-				Logger.error('MCP initialization failed', { error: errorMsg, stack: error instanceof Error ? error.stack : undefined });
+				const errorMsg =
+					error instanceof Error
+						? error.message
+						: 'Failed to initialize MCP service';
+				Logger.error('MCP initialization failed', {
+					error: errorMsg,
+					stack: error instanceof Error ? error.stack : undefined,
+				});
 				setInitializationError(errorMsg);
 			} finally {
 				setIsLoading(false);
@@ -178,7 +204,10 @@ export default function App({ name }: Props) {
 
 	// History navigation callbacks
 	const handleHistoryUp = useCallback(() => {
-		Logger.debug('History up requested', { historyIndex, historyLength: inputHistory.length });
+		Logger.debug('History up requested', {
+			historyIndex,
+			historyLength: inputHistory.length,
+		});
 
 		if (inputHistory.length === 0) return;
 
@@ -196,10 +225,20 @@ export default function App({ name }: Props) {
 				setInput(historyItem);
 			}
 		}
-	}, [historyIndex, inputHistory, input, setInput, setHistoryIndex, setTempInput]);
+	}, [
+		historyIndex,
+		inputHistory,
+		input,
+		setInput,
+		setHistoryIndex,
+		setTempInput,
+	]);
 
 	const handleHistoryDown = useCallback(() => {
-		Logger.debug('History down requested', { historyIndex, historyLength: inputHistory.length });
+		Logger.debug('History down requested', {
+			historyIndex,
+			historyLength: inputHistory.length,
+		});
 
 		if (historyIndex === -1) return;
 
@@ -224,7 +263,11 @@ export default function App({ name }: Props) {
 
 		// Add input to history (avoid duplicates and empty strings)
 		const trimmedInput = userInput.trim();
-		if (trimmedInput && (inputHistory.length === 0 || inputHistory[inputHistory.length - 1] !== trimmedInput)) {
+		if (
+			trimmedInput &&
+			(inputHistory.length === 0 ||
+				inputHistory[inputHistory.length - 1] !== trimmedInput)
+		) {
 			setInputHistory(prev => [...prev, trimmedInput]);
 		}
 
@@ -236,12 +279,12 @@ export default function App({ name }: Props) {
 			input: trimmedInput,
 			isWaitingForApiKey,
 			isWaitingForServerConfig,
-			historyLength: inputHistory.length + 1
+			historyLength: inputHistory.length + 1,
 		});
 
 		// Check if we're waiting for server configuration input
 		if (isWaitingForServerConfig) {
-			Logger.debug('Processing server config input', { step: serverConfigStep });
+			Logger.debug('Processing server config input', {step: serverConfigStep});
 
 			const userMessage: Message = {
 				id: Date.now().toString(),
@@ -256,13 +299,24 @@ export default function App({ name }: Props) {
 
 			try {
 				// Import CommandHandler to access handleServerConfigInput
-				const result = await mcpService.sendMessage(trimmedInput, false, '', '', true, serverConfigStep, currentServerConfig);
+				const result = await mcpService.sendMessage(
+					trimmedInput,
+					false,
+					'',
+					'',
+					true,
+					serverConfigStep,
+					currentServerConfig,
+				);
 
-				Logger.debug('Server config result received', { result });
+				Logger.debug('Server config result received', {result});
 
 				if (result.commandResult) {
 					// Check if we're continuing server config or done
-					if (result.commandResult.type === 'prompt_server_config' && result.commandResult.data) {
+					if (
+						result.commandResult.type === 'prompt_server_config' &&
+						result.commandResult.data
+					) {
 						setServerConfigStep(result.commandResult.data.step);
 						setCurrentServerConfig(result.commandResult.data.config);
 					} else {
@@ -272,7 +326,10 @@ export default function App({ name }: Props) {
 						setCurrentServerConfig(null);
 
 						// Update connected servers if servers were connected or disconnected
-						if (result.commandResult.data?.reinitializeAgent) { await mcpService.initializeAgent(); setConnectedServers(mcpService.getConnectedServers()); }
+						if (result.commandResult.data?.reinitializeAgent) {
+							await mcpService.initializeAgent();
+							setConnectedServers(mcpService.getConnectedServers());
+						}
 					}
 					const commandMessage: CommandMessage = {
 						id: (Date.now() + 1).toString(),
@@ -287,12 +344,17 @@ export default function App({ name }: Props) {
 
 				setIsLoading(false);
 			} catch (error) {
-				Logger.error('Server config error', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
+				Logger.error('Server config error', {
+					error: error instanceof Error ? error.message : 'Unknown error',
+					stack: error instanceof Error ? error.stack : undefined,
+				});
 
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					content: `Error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					timestamp: new Date(),
 				};
 
@@ -309,7 +371,10 @@ export default function App({ name }: Props) {
 
 		// Check if we're waiting for an API key
 		if (isWaitingForApiKey) {
-			Logger.debug('Processing API key input', { provider: pendingProvider, model: pendingModel });
+			Logger.debug('Processing API key input', {
+				provider: pendingProvider,
+				model: pendingModel,
+			});
 
 			const maskedInput = trimmedInput.replace(/./g, '*');
 			const userMessage: Message = {
@@ -324,9 +389,16 @@ export default function App({ name }: Props) {
 			setIsLoading(true);
 
 			try {
-				const result = await mcpService.sendMessage(trimmedInput.trim(), true, pendingProvider, pendingModel);
+				const result = await mcpService.sendMessage(
+					trimmedInput.trim(),
+					true,
+					pendingProvider,
+					pendingModel,
+				);
 
-				Logger.debug('API key result received', { success: !!result.commandResult?.data?.llmConfig });
+				Logger.debug('API key result received', {
+					success: !!result.commandResult?.data?.llmConfig,
+				});
 
 				if (result.commandResult) {
 					const commandMessage: CommandMessage = {
@@ -352,12 +424,17 @@ export default function App({ name }: Props) {
 
 				setIsLoading(false);
 			} catch (error) {
-				Logger.error('API key error', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
+				Logger.error('API key error', {
+					error: error instanceof Error ? error.message : 'Unknown error',
+					stack: error instanceof Error ? error.stack : undefined,
+				});
 
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					content: `Error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					timestamp: new Date(),
 				};
 
@@ -391,7 +468,7 @@ export default function App({ name }: Props) {
 			Logger.debug('Message result received', {
 				isCommand: result.isCommand,
 				hasCommandResult: !!result.commandResult,
-				toolCallsCount: result.toolCalls?.length || 0
+				toolCallsCount: result.toolCalls?.length || 0,
 			});
 
 			if (result.isCommand && result.commandResult) {
@@ -402,11 +479,17 @@ export default function App({ name }: Props) {
 				}
 
 				// Check if we need to prompt for API key
-				if (result.commandResult.type === 'prompt_key' && result.commandResult.data) {
+				if (
+					result.commandResult.type === 'prompt_key' &&
+					result.commandResult.data
+				) {
 					setIsWaitingForApiKey(true);
 					setPendingProvider(result.commandResult.data.provider);
 					setPendingModel(result.commandResult.data.model);
-				} else if (result.commandResult.type === 'prompt_server_config' && result.commandResult.data) {
+				} else if (
+					result.commandResult.type === 'prompt_server_config' &&
+					result.commandResult.data
+				) {
 					setIsWaitingForServerConfig(true);
 					setServerConfigStep(result.commandResult.data.step);
 					setCurrentServerConfig(result.commandResult.data.config || null);
@@ -437,12 +520,17 @@ export default function App({ name }: Props) {
 
 			setIsLoading(false);
 		} catch (error) {
-			Logger.error('Message processing error', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
+			Logger.error('Message processing error', {
+				error: error instanceof Error ? error.message : 'Unknown error',
+				stack: error instanceof Error ? error.stack : undefined,
+			});
 
 			const errorMessage: Message = {
 				id: (Date.now() + 1).toString(),
 				role: 'assistant',
-				content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				content: `Error: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`,
 				timestamp: new Date(),
 			};
 
@@ -456,16 +544,15 @@ export default function App({ name }: Props) {
 			<Box borderStyle="round" borderColor="blue" paddingX={1} marginBottom={1}>
 				<Box flexDirection="column" width="100%">
 					<Box flexDirection="row" justifyContent="space-between" width="100%">
-						<Text color="blue" bold>
-							MCP-Use CLI {name ? `- ${name}` : ' '}
-						</Text>
-						<Text color="gray">
-							Model: {currentModel}
-						</Text>
+						<AsciiLogo />
+						<Text color="gray">Model: {currentModel}</Text>
 					</Box>
 					<Box flexDirection="row" justifyContent="flex-start" width="100%">
 						<Text color="gray">
-							Connected servers: {connectedServers.length > 0 ? connectedServers.join(', ') : 'none'}
+							Connected servers:{' '}
+							{connectedServers.length > 0
+								? connectedServers.join(', ')
+								: 'none'}
 						</Text>
 					</Box>
 				</Box>
@@ -474,29 +561,22 @@ export default function App({ name }: Props) {
 			<Box flexDirection="column" flexGrow={1} paddingX={1}>
 				{initializationError && (
 					<Box marginBottom={1}>
-						<Text color="red">
-							❌ {initializationError}
-						</Text>
+						<Text color="red">❌ {initializationError}</Text>
 					</Box>
 				)}
 
 				{!initializationError && messages.length === 0 && !isLoading && (
 					<Box marginBottom={1} flexDirection="column">
 						<BigText text="MCP USE CLI" colors={['white']} />
-						<Text color="gray">
-							Welcome to MCP-Use CLI!
-						</Text>
+						<Text color="gray">Welcome to MCP-Use CLI!</Text>
 						{currentModel.includes('No') ? (
 							<Box flexDirection="column">
-								<Text color="yellow">
-									⚠️ {currentModel}
-								</Text>
+								<Text color="yellow">⚠️ {currentModel}</Text>
 								<Text color="gray">
-									Choose a model to get started - the CLI will help you set up the API key.
+									Choose a model to get started - the CLI will help you set up
+									the API key.
 								</Text>
-								<Text color="cyan">
-									💡 Try: /model openai gpt-4o-mini
-								</Text>
+								<Text color="cyan">💡 Try: /model openai gpt-4o-mini</Text>
 								<Text color="gray">
 									Or use /models to see all options, /help for commands.
 								</Text>
@@ -507,7 +587,8 @@ export default function App({ name }: Props) {
 									Type your message and press Enter to start chatting.
 								</Text>
 								<Text color="gray">
-									Use slash commands like /help, /model, or /status for configuration.
+									Use slash commands like /help, /model, or /status for
+									configuration.
 								</Text>
 							</Box>
 						)}
@@ -516,18 +597,18 @@ export default function App({ name }: Props) {
 
 				{!initializationError && messages.length === 0 && isLoading && (
 					<Box marginBottom={1}>
-						<Text color="blue">
-							🔄 Initializing MCP service...
-						</Text>
+						<Text color="blue">🔄 Initializing MCP service...</Text>
 					</Box>
 				)}
 
-				{messages.map(message => <MessageRenderer message={message}></MessageRenderer>)}
+				{messages.map(message => (
+					<MessageRenderer message={message}></MessageRenderer>
+				))}
 				{isLoading && (
 					<Box marginBottom={1}>
 						<Box marginRight={1}>
-							<Text color="blue" bold>
-								◦
+							<Text color="blue">
+								<Spinner type="mindblown" />
 							</Text>
 						</Box>
 						<Text color="gray">Thinking...</Text>
@@ -537,11 +618,36 @@ export default function App({ name }: Props) {
 
 			{showInput && !initializationError && (
 				<Box flexDirection="column" marginTop={1} paddingX={1}>
-					<Box borderStyle="round" borderColor={isWaitingForApiKey ? "yellow" : isWaitingForServerConfig ? "blue" : "gray"} paddingX={1} paddingY={1} minHeight={3}>
+					<Box
+						borderStyle="round"
+						borderColor={
+							isWaitingForApiKey
+								? 'yellow'
+								: isWaitingForServerConfig
+								? 'blue'
+								: 'gray'
+						}
+						paddingX={1}
+						paddingY={1}
+						minHeight={3}
+					>
 						<Box flexDirection="row" width="100%">
 							<Box marginRight={1} alignSelf="flex-start" flexShrink={0}>
-								<Text color={isWaitingForApiKey ? "yellow" : isWaitingForServerConfig ? "blue" : "green"} bold>
-									{isWaitingForApiKey ? "🔑" : isWaitingForServerConfig ? "🔧" : "❯"}
+								<Text
+									color={
+										isWaitingForApiKey
+											? 'yellow'
+											: isWaitingForServerConfig
+											? 'blue'
+											: 'green'
+									}
+									bold
+								>
+									{isWaitingForApiKey
+										? '🔑'
+										: isWaitingForServerConfig
+										? '🔧'
+										: '❯'}
 								</Text>
 							</Box>
 							<Box flexGrow={1}>
@@ -555,10 +661,10 @@ export default function App({ name }: Props) {
 										isWaitingForApiKey
 											? `Enter ${pendingProvider.toUpperCase()} API key...`
 											: isWaitingForServerConfig
-												? "Enter server configuration..."
-												: "Type your message..."
+											? 'Enter server configuration...'
+											: 'Type your message...'
 									}
-									mask={isWaitingForApiKey ? "*" : undefined}
+									mask={isWaitingForApiKey ? '*' : undefined}
 								/>
 							</Box>
 						</Box>

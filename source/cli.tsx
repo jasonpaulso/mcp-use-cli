@@ -4,7 +4,7 @@ import {render} from 'ink';
 import meow from 'meow';
 import App from './app.js';
 
-const cli = meow(
+meow(
 	`
 	Usage
 	  $ mcp-use-cli
@@ -29,9 +29,6 @@ const cli = meow(
 	{
 		importMeta: import.meta,
 		flags: {
-			name: {
-				type: 'string',
-			},
 			config: {
 				type: 'string',
 			},
@@ -39,4 +36,4 @@ const cli = meow(
 	},
 );
 
-render(<App name={cli.flags.name} />);
+render(<App />);

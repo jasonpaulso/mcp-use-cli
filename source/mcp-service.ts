@@ -1,8 +1,8 @@
-import { MCPAgent, MCPClient } from 'mcp-use';
-import { config } from 'dotenv';
-import { CommandHandler, CommandResult } from './commands.js';
-import { Logger } from './logger.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js'
+import {MCPAgent, MCPClient} from 'mcp-use';
+import {config} from 'dotenv';
+import {CommandHandler, CommandResult} from './commands.js';
+import {Logger} from './logger.js';
+import type {Tool} from '@modelcontextprotocol/sdk/types.js';
 // Load environment variables
 config();
 
@@ -31,39 +31,47 @@ export class MCPService {
 		if (this.isInitialized) {
 			return;
 		}
-		await this.initializeAgent()
+		await this.initializeAgent();
 		this.isInitialized = true;
 	}
 
 	public async initializeAgent() {
-		const sessionServers = this.commandHandler.getSessionServers()
-		const llm = this.commandHandler.createLLM()
+		const sessionServers = this.commandHandler.getSessionServers();
+		const llm = this.commandHandler.createLLM();
 		const config = {
 			mcpServers: {
-				...sessionServers
-			}
-		}
-		Logger.info('Initializing MCP client with config', { config })
-		const client = new MCPClient(config)
+				...sessionServers,
+			},
+		};
+		Logger.info('Initializing MCP client with config', {config});
+		const client = new MCPClient(config);
 		// Create agent with memory_enabled=true
 		const agent = new MCPAgent({
 			llm,
 			client,
 			maxSteps: 15,
 			memoryEnabled: true, // Enable built-in conversation memory
-		})
-		Logger.info('Initializing MCP agent', { agent })
-		await agent.initialize()
-		Logger.info('MCP agent initialized', { agent })
+		});
+		Logger.info('Initializing MCP agent', {agent});
+		await agent.initialize();
+		Logger.info('MCP agent initialized', {agent});
 		this.agent = agent;
 		this.client = client;
 	}
 
 	async refreshAgent() {
-		await this.initializeAgent()
+		await this.initializeAgent();
 	}
 
-	async sendMessage(message: string, isApiKeyInput?: boolean, pendingProvider?: string, pendingModel?: string, isServerConfigInput?: boolean, serverConfigStep?: string, serverConfig?: any): Promise<{
+	async sendMessage(
+		message: string,
+		isApiKeyInput?: boolean,
+		pendingProvider?: string,
+		pendingModel?: string,
+		isServerConfigInput?: boolean,
+		serverConfigStep?: string,
+		serverConfig?: any,
+	): Promise<{
 		response: string;
 		toolCalls: MCPToolCall[];
 		isCommand?: boolean;
@@ -71,22 +79,27 @@ export class MCPService {
 	}> {
 		// Handle server configuration input
 		if (isServerConfigInput && serverConfigStep) {
-			const commandResult = this.commandHandler.handleServerConfigInput(message.trim(), serverConfigStep, serverConfig);
-
-			
-			
+			const commandResult = this.commandHandler.handleServerConfigInput(
+				message.trim(),
+				serverConfigStep,
+				serverConfig,
+			);
 
 			return {
 				response: commandResult.message,
 				toolCalls: [],
 				isCommand: true,
-				commandResult
+				commandResult,
 			};
 		}
 
 		// Handle API key input
 		if (isApiKeyInput && pendingProvider && pendingModel) {
-			const commandResult = this.commandHandler.handleApiKeyInput(message.trim(), pendingProvider, pendingModel);
+			const commandResult = this.commandHandler.handleApiKeyInput(
+				message.trim(),
+				pendingProvider,
+				pendingModel,
+			);
 
 			// If successful, reinitialize the agent
 			if (commandResult.data?.llmConfig) {
@@ -97,7 +110,7 @@ export class MCPService {
 				response: commandResult.message,
 				toolCalls: [],
 				isCommand: true,
-				commandResult
+				commandResult,
 			};
 		}
 		// Check if it's a slash command
@@ -126,8 +139,10 @@ export class MCPService {
 						toolsMessage += '🔍 Debug steps:\n';
 						toolsMessage += '1. Check console logs for errors\n';
 						toolsMessage += '2. Test server manually: /test-server <name>\n';
-						toolsMessage += '3. Ask agent "Which tools do you have?" to see fallback tools\n\n';
-						toolsMessage += '⚠️ If you see Wolfram/Wikipedia tools, MCP integration failed completely.';
+						toolsMessage +=
+							'3. Ask agent "Which tools do you have?" to see fallback tools\n\n';
+						toolsMessage +=
+							'⚠️ If you see Wolfram/Wikipedia tools, MCP integration failed completely.';
 					} else {
 						toolsMessage += `✅ Found ${toolsResult.tools.length} MCP tools:\n\n`;
 						toolsResult.tools.forEach((tool: any, index) => {
@@ -143,7 +158,7 @@ export class MCPService {
 						response: toolsMessage,
 						toolCalls: [],
 						isCommand: true,
-						commandResult: { type: 'info', message: toolsMessage }
+						commandResult: {type: 'info', message: toolsMessage},
 					};
 				}
 
@@ -152,21 +167,20 @@ export class MCPService {
 					await this.initializeAgent();
 				}
 
-				
-				
-
 				return {
 					response: commandResult.message,
 					toolCalls: [],
 					isCommand: true,
-					commandResult
+					commandResult,
 				};
 			} catch (error) {
 				return {
-					response: `Command error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					response: `Command error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					toolCalls: [],
 					isCommand: true,
-					commandResult: { type: 'error', message: 'Command failed' }
+					commandResult: {type: 'error', message: 'Command failed'},
 				};
 			}
 		}
@@ -180,9 +194,13 @@ export class MCPService {
 				};
 			} else {
 				const firstProvider = availableProviders[0];
-				const exampleModel = firstProvider ? this.getExampleModel(firstProvider) : 'model-name';
+				const exampleModel = firstProvider
+					? this.getExampleModel(firstProvider)
+					: 'model-name';
 				return {
-					response: `🔧 No model selected.\n\nAvailable providers: ${availableProviders.join(', ')}\n\nUse /model <provider> <model> to get started.\n\nExample: /model ${firstProvider} ${exampleModel}`,
+					response: `🔧 No model selected.\n\nAvailable providers: ${availableProviders.join(
+						', ',
+					)}\n\nUse /model <provider> <model> to get started.\n\nExample: /model ${firstProvider} ${exampleModel}`,
 					toolCalls: [],
 				};
 			}
@@ -205,7 +223,7 @@ export class MCPService {
 		} catch (error) {
 			Logger.error('Error sending message to MCP agent', {
 				error: error instanceof Error ? error.message : 'Unknown error',
-				stack: error instanceof Error ? error.stack : undefined
+				stack: error instanceof Error ? error.stack : undefined,
 			});
 			throw error;
 		}
@@ -216,7 +234,7 @@ export class MCPService {
 			openai: 'gpt-4o-mini',
 			anthropic: 'claude-3-5-sonnet-20241022',
 			google: 'gemini-1.5-pro',
-			mistral: 'mistral-large-latest'
+			mistral: 'mistral-large-latest',
 		};
 		return examples[provider as keyof typeof examples] || 'model-name';
 	}
@@ -234,19 +252,24 @@ export class MCPService {
 			// MCPAgent doesn't support streaming in the current version
 			// Fallback to non-streaming
 			const result = await this.sendMessage(message);
-			yield { content: result.response, done: false };
+			yield {content: result.response, done: false};
 
 			for (const toolCall of result.toolCalls) {
-				yield { toolCall, done: false };
+				yield {toolCall, done: false};
 			}
 
-			yield { done: true };
+			yield {done: true};
 		} catch (error) {
 			Logger.error('Error streaming message:', {
 				error: error instanceof Error ? error.message : 'Unknown error',
-				stack: error instanceof Error ? error.stack : undefined
+				stack: error instanceof Error ? error.stack : undefined,
 			});
-			yield { content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, done: true };
+			yield {
+				content: `Error: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`,
+				done: true,
+			};
 		}
 	}
 
@@ -275,11 +298,15 @@ export class MCPService {
 		const servers = ['filesystem'];
 
 		// Add persistent servers (avoid duplicates)
-		const persistentCustomServers = Object.keys(storedServers).filter(name => name !== 'filesystem');
+		const persistentCustomServers = Object.keys(storedServers).filter(
+			name => name !== 'filesystem',
+		);
 		servers.push(...persistentCustomServers);
 
 		// Add session servers (avoid duplicates)
-		const sessionCustomServers = Object.keys(sessionServers).filter(name => name !== 'filesystem' && !persistentCustomServers.includes(name));
+		const sessionCustomServers = Object.keys(sessionServers).filter(
+			name => name !== 'filesystem' && !persistentCustomServers.includes(name),
+		);
 		servers.push(...sessionCustomServers);
 
 		return servers;
@@ -291,30 +318,32 @@ export class MCPService {
 		return connectedCustomServers;
 	}
 
-	async getAvailableTools(): Promise<{ tools: Tool[], error?: string }> {
+	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
 		Logger.debug('Getting available tools - starting check');
 
 		if (!this.agent) {
 			const error = 'No agent initialized';
-			Logger.warn('Tools check failed - no agent', { error });
-			return { tools: [], error };
+			Logger.warn('Tools check failed - no agent', {error});
+			return {tools: [], error};
 		}
 
 		try {
 			if (this.client) {
 				Logger.debug('Checking client for tools', {
 					clientType: this.client.constructor.name,
-					clientKeys: Object.keys(this.client)
+					clientKeys: Object.keys(this.client),
 				});
 
 				let allTools: Tool[] = [];
 
 				// Iterate through sessions
-				for (const [sessionName, session] of Object.entries(this.client.getAllActiveSessions())) {
+				for (const [sessionName, session] of Object.entries(
+					this.client.getAllActiveSessions(),
+				)) {
 					Logger.debug(`Checking session: ${sessionName}`, {
 						sessionType: typeof session,
 						sessionConstructor: session?.constructor?.name,
-						sessionKeys: session ? Object.keys(session) : []
+						sessionKeys: session ? Object.keys(session) : [],
 					});
 
 					// Try to get tools from connector
@@ -322,34 +351,49 @@ export class MCPService {
 						Logger.debug(`Checking connector in session ${sessionName}`, {
 							connectorType: typeof session.connector,
 							connectorConstructor: session.connector?.constructor?.name,
-							connectorKeys: session.connector ? Object.keys(session.connector) : []
+							connectorKeys: session.connector
+								? Object.keys(session.connector)
+								: [],
 						});
 
-						if (session.connector.tools && Array.isArray(session.connector.tools)) {
-							Logger.debug(`Found tools in connector for session ${sessionName}`, {
-								toolCount: session.connector.tools.length,
-								tools: session.connector.tools
-							});
-							allTools.push(...session.connector.tools.map((tool: any) => ({ ...tool, session: sessionName })));
+						if (
+							session.connector.tools &&
+							Array.isArray(session.connector.tools)
+						) {
+							Logger.debug(
+								`Found tools in connector for session ${sessionName}`,
+								{
+									toolCount: session.connector.tools.length,
+									tools: session.connector.tools,
+								},
+							);
+							allTools.push(
+								...session.connector.tools.map((tool: any) => ({
+									...tool,
+									session: sessionName,
+								})),
+							);
 						}
 					}
 				}
-				return { tools: allTools };
+				return {tools: allTools};
 			}
 		} catch (error) {
-			const errorMsg = `Failed to get tools: ${error instanceof Error ? error.message : 'Unknown error'}`;
+			const errorMsg = `Failed to get tools: ${
+				error instanceof Error ? error.message : 'Unknown error'
+			}`;
 			Logger.error('Tools check failed with exception', {
 				error: errorMsg,
-				stack: error instanceof Error ? error.stack : undefined
+				stack: error instanceof Error ? error.stack : undefined,
 			});
 			return {
 				tools: [],
-				error: errorMsg
+				error: errorMsg,
 			};
 		}
 
 		// Default return if client doesn't exist
-		return { tools: [], error: 'No client available' };
+		return {tools: [], error: 'No client available'};
 	}
 }
 

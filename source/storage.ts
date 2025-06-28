@@ -1,7 +1,12 @@
-import { scryptSync, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import {
+	scryptSync,
+	randomBytes,
+	createCipheriv,
+	createDecipheriv,
+} from 'node:crypto';
+import {readFileSync, writeFileSync, existsSync, mkdirSync} from 'node:fs';
+import {join} from 'node:path';
+import {homedir} from 'node:os';
 
 const CONFIG_DIR = join(homedir(), '.mcp-use-cli');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
@@ -15,11 +20,14 @@ export interface StoredConfig {
 		temperature?: number;
 		maxTokens?: number;
 	};
-	mcpServers?: Record<string, {
-		command: string;
-		args?: string[];
-		env?: Record<string, string>;
-	}>;
+	mcpServers?: Record<
+		string,
+		{
+			command: string;
+			args?: string[];
+			env?: Record<string, string>;
+		}
+	>;
 }
 
 export class SecureStorage {
@@ -32,10 +40,10 @@ export class SecureStorage {
 			const iv = randomBytes(16);
 			const key = this.getKey();
 			const cipher = createCipheriv('aes-256-cbc', key, iv);
-			
+
 			let encrypted = cipher.update(text, 'utf8', 'hex');
 			encrypted += cipher.final('hex');
-			
+
 			return iv.toString('hex') + ':' + encrypted;
 		} catch (error) {
 			console.error('Encryption error:', error);
@@ -50,15 +58,15 @@ export class SecureStorage {
 				// Old format or plaintext, return as-is
 				return encryptedText;
 			}
-			
+
 			const iv = Buffer.from(parts[0], 'hex');
 			const encryptedData = parts[1];
 			const key = this.getKey();
 			const decipher = createDecipheriv('aes-256-cbc', key, iv);
-			
+
 			let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
 			decrypted += decipher.final('utf8');
-			
+
 			return decrypted;
 		} catch (error) {
 			console.error('Decryption error:', error);
@@ -68,24 +76,26 @@ export class SecureStorage {
 
 	static ensureConfigDir(): void {
 		if (!existsSync(CONFIG_DIR)) {
-			mkdirSync(CONFIG_DIR, { recursive: true });
+			mkdirSync(CONFIG_DIR, {recursive: true});
 		}
 	}
 
 	static loadConfig(): StoredConfig {
 		this.ensureConfigDir();
-		
+
 		if (!existsSync(CONFIG_FILE)) {
-			return { apiKeys: {} };
+			return {apiKeys: {}};
 		}
 
 		try {
 			const configData = readFileSync(CONFIG_FILE, 'utf8');
 			const parsed = JSON.parse(configData);
-			
+
 			// Decrypt API keys
 			const decryptedApiKeys: Record<string, string> = {};
-			for (const [key, encryptedValue] of Object.entries(parsed.apiKeys || {})) {
+			for (const [key, encryptedValue] of Object.entries(
+				parsed.apiKeys || {},
+			)) {
 				if (typeof encryptedValue === 'string') {
 					decryptedApiKeys[key] = this.decrypt(encryptedValue);
 				}
@@ -93,17 +103,17 @@ export class SecureStorage {
 
 			return {
 				...parsed,
-				apiKeys: decryptedApiKeys
+				apiKeys: decryptedApiKeys,
 			};
 		} catch (error) {
 			console.error('Error loading config:', error);
-			return { apiKeys: {} };
+			return {apiKeys: {}};
 		}
 	}
 
 	static saveConfig(config: StoredConfig): void {
 		this.ensureConfigDir();
-		
+
 		try {
 			// Encrypt API keys before saving
 			const encryptedApiKeys: Record<string, string> = {};
@@ -113,7 +123,7 @@ export class SecureStorage {
 
 			const configToSave = {
 				...config,
-				apiKeys: encryptedApiKeys
+				apiKeys: encryptedApiKeys,
 			};
 
 			writeFileSync(CONFIG_FILE, JSON.stringify(configToSave, null, 2), 'utf8');
@@ -124,10 +134,14 @@ export class SecureStorage {
 
 	static clearConfig(): void {
 		this.ensureConfigDir();
-		
+
 		try {
 			if (existsSync(CONFIG_FILE)) {
-				writeFileSync(CONFIG_FILE, JSON.stringify({ apiKeys: {} }, null, 2), 'utf8');
+				writeFileSync(
+					CONFIG_FILE,
+					JSON.stringify({apiKeys: {}}, null, 2),
+					'utf8',
+				);
 			}
 		} catch (error) {
 			console.error('Error clearing config:', error);
