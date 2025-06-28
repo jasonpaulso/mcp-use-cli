@@ -10,6 +10,11 @@ import { MCPConfigService } from './mcp-config-service.js';
 // Load environment variables
 config();
 
+/**
+ * The main service for the CLI application. It orchestrates all other services
+ * and handles the core logic of the application, such as message processing,
+ * command handling, and agent management.
+ */
 export class CLIService {
 	private isInitialized = false;
 	private commandHandler: CommandHandler;
@@ -17,6 +22,10 @@ export class CLIService {
 	private llmService: LLMService;
 	private mcpConfigService: MCPConfigService;
 
+	/**
+	 * Initializes the CLIService and its dependencies. This acts as the
+	 * composition root for the application's services.
+	 */
 	constructor() {
 		this.llmService = new LLMService();
 		this.mcpConfigService = new MCPConfigService();
@@ -30,6 +39,10 @@ export class CLIService {
 		});
 	}
 
+	/**
+	 * Initializes the CLI service, ensuring the agent is ready.
+	 * This method is idempotent and will only run once.
+	 */
 	async initialize() {
 		if (this.isInitialized) {
 			return;
@@ -38,6 +51,11 @@ export class CLIService {
 		this.isInitialized = true;
 	}
 
+	/**
+	 * Initializes the underlying MCP agent via the AgentService.
+	 * If initialization fails, an error is logged, but the CLI can continue
+	 * to operate for command-line tasks.
+	 */
 	public async initializeAgent() {
 		try {
 			await this.agentService.initializeAgent();
@@ -50,10 +68,27 @@ export class CLIService {
 		}
 	}
 
+	/**
+	 * Re-initializes the agent. This is useful when the configuration
+	 * (e.g., model or servers) has changed.
+	 */
 	async refreshAgent() {
 		await this.initializeAgent();
 	}
 
+	/**
+	 * Processes a user's message. It determines if the message is a command
+	 * or a prompt for the agent and routes it accordingly. It also handles
+	 * special input modes like API key entry or server configuration.
+	 * @param message The raw input string from the user.
+	 * @param isApiKeyInput True if the input is an API key.
+	 * @param pendingProvider The provider for which the API key is being entered.
+	 * @param pendingModel The model for which the API key is being entered.
+	 * @param isServerConfigInput True if the input is part of the server config flow.
+	 * @param serverConfigStep The current step in the server configuration flow.
+	 * @param serverConfig The server configuration object being built.
+	 * @returns A promise that resolves to the result of the message processing.
+	 */
 	async sendMessage(
 		message: string,
 		isApiKeyInput?: boolean,
@@ -212,6 +247,11 @@ export class CLIService {
 		}
 	}
 
+	/**
+	 * Returns an example model name for a given provider.
+	 * @param provider The name of the LLM provider.
+	 * @returns An example model name string.
+	 */
 	private getExampleModel(provider: string): string {
 		const examples = {
 			openai: 'gpt-4o-mini',
@@ -222,45 +262,20 @@ export class CLIService {
 		return examples[provider as keyof typeof examples] || 'model-name';
 	}
 
-	async *streamMessage(message: string): AsyncGenerator<{
-		content?: string;
-		toolCall?: ToolCall;
-		done: boolean;
-	}> {
-		if (!this.agentService.isReady()) {
-			throw new Error('MCP service not initialized');
-		}
-
-		try {
-			// MCPAgent doesn't support streaming in the current version
-			// Fallback to non-streaming
-			const result = await this.sendMessage(message);
-			yield { content: result.response, done: false };
-
-			for (const toolCall of result.toolCalls) {
-				yield { toolCall, done: false };
-			}
-
-			yield { done: true };
-		} catch (error) {
-			Logger.error('Error streaming message:', {
-				error: error instanceof Error ? error.message : 'Unknown error',
-				stack: error instanceof Error ? error.stack : undefined,
-			});
-			yield {
-				content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-					}`,
-				done: true,
-			};
-		}
-	}
-
+	/**
+	 * Checks if the CLI service has been initialized.
+	 * @returns True if the service is initialized, false otherwise.
+	 */
 	isReady(): boolean {
 		// The CLI is always "ready" to take commands, but the agent might not be.
 		// We rely on agentService.isReady() inside sendMessage.
 		return this.isInitialized;
 	}
 
+	/**
+	 * Gets a formatted string representing the current model.
+	 * @returns A string like "provider/model-name" or a status message.
+	 */
 	getCurrentModel(): string {
 		const config = this.llmService.getCurrentConfig();
 		if (!config) {
@@ -273,6 +288,10 @@ export class CLIService {
 		return `${config.provider}/${config.model}`;
 	}
 
+	/**
+	 * Gets a list of all configured server names, both persistent and session-based.
+	 * @returns An array of unique server names.
+	 */
 	getConfiguredServers(): string[] {
 		const storedServers = this.mcpConfigService.getConfiguredServers();
 		const sessionServers = this.mcpConfigService.getSessionServers();
@@ -286,12 +305,20 @@ export class CLIService {
 		return Array.from(allServerNames);
 	}
 
+	/**
+	 * Gets a list of currently connected server names.
+	 * @returns An array of connected server names.
+	 */
 	getConnectedServers(): string[] {
 		const sessionServers = this.mcpConfigService.getSessionServers();
 		const connectedCustomServers = Object.keys(sessionServers);
 		return connectedCustomServers;
 	}
 
+	/**
+	 * Gets the list of available tools from the agent.
+	 * @returns A promise that resolves to an object containing the tools or an error.
+	 */
 	async getAvailableTools(): Promise<{ tools: any[]; error?: string }> {
 		return this.agentService.getAvailableTools();
 	}
