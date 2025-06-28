@@ -315,6 +315,8 @@ Available slash commands:
 			modelList += `• ${model}${current}\n`;
 		});
 
+		modelList += `\n Don't see your model/provider? Submit a PR to add it at https://github.com/mcp-use/mcp-use-cli/`;
+
 		return {
 			type: 'info',
 			message: modelList.trim()
