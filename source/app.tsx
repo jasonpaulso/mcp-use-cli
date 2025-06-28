@@ -1,10 +1,10 @@
-import React, {useState, useEffect, useCallback} from 'react';
-import {Box, Text, useInput, useStdout} from 'ink';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Text, useInput, useStdout } from 'ink';
 import BigText from 'ink-big-text';
-import {mcpService, MCPMessage, MCPToolCall} from './mcp-service.js';
-import {CommandResult} from './commands.js';
-import {Logger} from './logger.js';
-import {InputPrompt} from './components/InputPrompt.js';
+import { mcpService, MCPMessage, MCPToolCall } from './services/mcp-service.js';
+import { CommandResult } from './commands.js';
+import { Logger } from './logger.js';
+import { InputPrompt } from './components/InputPrompt.js';
 import Spinner from './components/Spinner.js';
 import AsciiLogo from './components/AsciiLogo.js';
 
@@ -37,7 +37,7 @@ const MessageRenderer = ({
 			return null;
 	}
 };
-const UserMessageRenderer = ({message}: {message: Message}) => {
+const UserMessageRenderer = ({ message }: { message: Message }) => {
 	return (
 		<>
 			<Box key={message.id} marginBottom={1}>
@@ -54,7 +54,7 @@ const UserMessageRenderer = ({message}: {message: Message}) => {
 	);
 };
 
-const AssistantMessageRenerer = ({message}: {message: Message}) => {
+const AssistantMessageRenerer = ({ message }: { message: Message }) => {
 	return (
 		<>
 			<Box key={message.id} marginBottom={1}>
@@ -71,7 +71,7 @@ const AssistantMessageRenerer = ({message}: {message: Message}) => {
 	);
 };
 
-const ToolCallRenderer = ({message}: {message: ToolCall}) => {
+const ToolCallRenderer = ({ message }: { message: ToolCall }) => {
 	return (
 		<>
 			<Box
@@ -95,8 +95,8 @@ const ToolCallRenderer = ({message}: {message: ToolCall}) => {
 	);
 };
 
-const CommandMessageRenderer = ({message}: {message: CommandMessage}) => {
-	const {commandResult} = message;
+const CommandMessageRenderer = ({ message }: { message: CommandMessage }) => {
+	const { commandResult } = message;
 	let icon = '💻';
 	let color = 'cyan';
 
@@ -154,7 +154,7 @@ export default function App() {
 	const [inputHistory, setInputHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState<number>(-1);
 	const [tempInput, setTempInput] = useState<string>('');
-	const {stdout} = useStdout();
+	const { stdout } = useStdout();
 
 	// Initialize MCP service on component mount
 	useEffect(() => {
@@ -284,7 +284,7 @@ export default function App() {
 
 		// Check if we're waiting for server configuration input
 		if (isWaitingForServerConfig) {
-			Logger.debug('Processing server config input', {step: serverConfigStep});
+			Logger.debug('Processing server config input', { step: serverConfigStep });
 
 			const userMessage: Message = {
 				id: Date.now().toString(),
@@ -309,7 +309,7 @@ export default function App() {
 					currentServerConfig,
 				);
 
-				Logger.debug('Server config result received', {result});
+				Logger.debug('Server config result received', { result });
 
 				if (result.commandResult) {
 					// Check if we're continuing server config or done
@@ -352,9 +352,8 @@ export default function App() {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
+					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
+						}`,
 					timestamp: new Date(),
 				};
 
@@ -432,9 +431,8 @@ export default function App() {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
+					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
+						}`,
 					timestamp: new Date(),
 				};
 
@@ -528,9 +526,8 @@ export default function App() {
 			const errorMessage: Message = {
 				id: (Date.now() + 1).toString(),
 				role: 'assistant',
-				content: `Error: ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 				timestamp: new Date(),
 			};
 
@@ -624,8 +621,8 @@ export default function App() {
 							isWaitingForApiKey
 								? 'yellow'
 								: isWaitingForServerConfig
-								? 'blue'
-								: 'gray'
+									? 'blue'
+									: 'gray'
 						}
 						paddingX={1}
 						paddingY={1}
@@ -638,16 +635,16 @@ export default function App() {
 										isWaitingForApiKey
 											? 'yellow'
 											: isWaitingForServerConfig
-											? 'blue'
-											: 'green'
+												? 'blue'
+												: 'green'
 									}
 									bold
 								>
 									{isWaitingForApiKey
 										? '🔑'
 										: isWaitingForServerConfig
-										? '🔧'
-										: '❯'}
+											? '🔧'
+											: '❯'}
 								</Text>
 							</Box>
 							<Box flexGrow={1}>
@@ -661,8 +658,8 @@ export default function App() {
 										isWaitingForApiKey
 											? `Enter ${pendingProvider.toUpperCase()} API key...`
 											: isWaitingForServerConfig
-											? 'Enter server configuration...'
-											: 'Type your message...'
+												? 'Enter server configuration...'
+												: 'Type your message...'
 									}
 									mask={isWaitingForApiKey ? '*' : undefined}
 								/>

@@ -1,8 +1,8 @@
-import {MCPAgent, MCPClient} from 'mcp-use';
-import {config} from 'dotenv';
-import {CommandHandler, CommandResult} from './commands.js';
-import {Logger} from './logger.js';
-import type {Tool} from '@modelcontextprotocol/sdk/types.js';
+import { MCPAgent, MCPClient } from 'mcp-use';
+import { config } from 'dotenv';
+import { CommandHandler, CommandResult } from '../commands.js';
+import { Logger } from '../logger.js';
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 // Load environment variables
 config();
 
@@ -43,7 +43,7 @@ export class MCPService {
 				...sessionServers,
 			},
 		};
-		Logger.info('Initializing MCP client with config', {config});
+		Logger.info('Initializing MCP client with config', { config });
 		const client = new MCPClient(config);
 		// Create agent with memory_enabled=true
 		const agent = new MCPAgent({
@@ -52,9 +52,9 @@ export class MCPService {
 			maxSteps: 15,
 			memoryEnabled: true, // Enable built-in conversation memory
 		});
-		Logger.info('Initializing MCP agent', {agent});
+		Logger.info('Initializing MCP agent', { agent });
 		await agent.initialize();
-		Logger.info('MCP agent initialized', {agent});
+		Logger.info('MCP agent initialized', { agent });
 		this.agent = agent;
 		this.client = client;
 	}
@@ -158,7 +158,7 @@ export class MCPService {
 						response: toolsMessage,
 						toolCalls: [],
 						isCommand: true,
-						commandResult: {type: 'info', message: toolsMessage},
+						commandResult: { type: 'info', message: toolsMessage },
 					};
 				}
 
@@ -175,12 +175,11 @@ export class MCPService {
 				};
 			} catch (error) {
 				return {
-					response: `Command error: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
+					response: `Command error: ${error instanceof Error ? error.message : 'Unknown error'
+						}`,
 					toolCalls: [],
 					isCommand: true,
-					commandResult: {type: 'error', message: 'Command failed'},
+					commandResult: { type: 'error', message: 'Command failed' },
 				};
 			}
 		}
@@ -252,22 +251,21 @@ export class MCPService {
 			// MCPAgent doesn't support streaming in the current version
 			// Fallback to non-streaming
 			const result = await this.sendMessage(message);
-			yield {content: result.response, done: false};
+			yield { content: result.response, done: false };
 
 			for (const toolCall of result.toolCalls) {
-				yield {toolCall, done: false};
+				yield { toolCall, done: false };
 			}
 
-			yield {done: true};
+			yield { done: true };
 		} catch (error) {
 			Logger.error('Error streaming message:', {
 				error: error instanceof Error ? error.message : 'Unknown error',
 				stack: error instanceof Error ? error.stack : undefined,
 			});
 			yield {
-				content: `Error: ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 				done: true,
 			};
 		}
@@ -318,13 +316,13 @@ export class MCPService {
 		return connectedCustomServers;
 	}
 
-	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
+	async getAvailableTools(): Promise<{ tools: Tool[]; error?: string }> {
 		Logger.debug('Getting available tools - starting check');
 
 		if (!this.agent) {
 			const error = 'No agent initialized';
-			Logger.warn('Tools check failed - no agent', {error});
-			return {tools: [], error};
+			Logger.warn('Tools check failed - no agent', { error });
+			return { tools: [], error };
 		}
 
 		try {
@@ -376,12 +374,11 @@ export class MCPService {
 						}
 					}
 				}
-				return {tools: allTools};
+				return { tools: allTools };
 			}
 		} catch (error) {
-			const errorMsg = `Failed to get tools: ${
-				error instanceof Error ? error.message : 'Unknown error'
-			}`;
+			const errorMsg = `Failed to get tools: ${error instanceof Error ? error.message : 'Unknown error'
+				}`;
 			Logger.error('Tools check failed with exception', {
 				error: errorMsg,
 				stack: error instanceof Error ? error.stack : undefined,
@@ -393,7 +390,7 @@ export class MCPService {
 		}
 
 		// Default return if client doesn't exist
-		return {tools: [], error: 'No client available'};
+		return { tools: [], error: 'No client available' };
 	}
 }
 
