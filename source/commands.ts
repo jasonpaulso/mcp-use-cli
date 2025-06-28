@@ -1,43 +1,20 @@
-import {Logger} from './logger.js';
-import {LLMService} from './services/llm-service.js';
-import {MCPConfigService} from './services/mcp-config-service.js';
-import {AgentService} from './services/agent-service.js';
-import {CommandResult} from './types.js';
+import { Logger } from './logger.js';
+import { LLMService } from './services/llm-service.js';
+import { MCPConfigService } from './services/mcp-config-service.js';
+import { CommandResult } from './types.js';
+
+export interface CommandHandlerDeps {
+	llmService: LLMService;
+	mcpService: MCPConfigService;
+}
 
 export class CommandHandler {
 	private llmService: LLMService;
 	private mcpService: MCPConfigService;
-	private agentService: AgentService;
 
-	constructor() {
-		// Initialize services
-		this.llmService = new LLMService();
-		this.mcpService = new MCPConfigService();
-		this.agentService = new AgentService({
-			llmService: this.llmService,
-			mcpService: this.mcpService,
-		});
-	}
-
-	// Delegate to services
-	getAvailableProviders(): string[] {
-		return this.llmService.getAvailableProviders();
-	}
-
-	isAnyProviderAvailable(): boolean {
-		return this.llmService.isAnyProviderAvailable();
-	}
-
-	getAgentService(): AgentService {
-		return this.agentService;
-	}
-
-	getLLMService(): LLMService {
-		return this.llmService;
-	}
-
-	getMCPService(): MCPConfigService {
-		return this.mcpService;
+	constructor(deps: CommandHandlerDeps) {
+		this.llmService = deps.llmService;
+		this.mcpService = deps.mcpService;
 	}
 
 	async handleCommand(input: string): Promise<CommandResult> {
@@ -128,7 +105,7 @@ Available slash commands:
 
 	private handleModel(args: string[]): CommandResult {
 		if (args.length < 2) {
-			const availableProviders = this.getAvailableProviders();
+			const availableProviders = this.llmService.getAvailableProviders();
 			if (availableProviders.length === 0) {
 				return {
 					type: 'info',
@@ -192,7 +169,7 @@ Available slash commands:
 		return {
 			type: 'success',
 			message: `✅ ${result.message}`,
-			data: {llmConfig: this.llmService.getCurrentConfig()},
+			data: { llmConfig: this.llmService.getCurrentConfig() },
 		};
 	}
 
@@ -211,7 +188,7 @@ Available slash commands:
 				models.forEach(model => {
 					const current =
 						provider === currentConfig?.provider &&
-						model === currentConfig?.model
+							model === currentConfig?.model
 							? ' ← current'
 							: '';
 					modelList += `   • ${model}${current}\n`;
@@ -266,7 +243,7 @@ Available slash commands:
 	}
 
 	private handleStatus(): CommandResult {
-		const availableProviders = this.getAvailableProviders();
+		const availableProviders = this.llmService.getAvailableProviders();
 		const currentConfig = this.llmService.getCurrentConfig();
 		const apiKeyStatus = this.llmService.getApiKeyStatus();
 
@@ -363,7 +340,7 @@ Available slash commands:
 				return {
 					type: 'success',
 					message: `✅ ${tempResult.message}`,
-					data: {llmConfig: this.llmService.getCurrentConfig()},
+					data: { llmConfig: this.llmService.getCurrentConfig() },
 				};
 
 			case 'tokens':
@@ -385,7 +362,7 @@ Available slash commands:
 				return {
 					type: 'success',
 					message: `✅ ${tokensResult.message}`,
-					data: {llmConfig: this.llmService.getCurrentConfig()},
+					data: { llmConfig: this.llmService.getCurrentConfig() },
 				};
 
 			default:
@@ -453,7 +430,7 @@ Available slash commands:
 		return {
 			type: 'success',
 			message,
-			data: result.autoSelected ? {llmConfig: result.autoSelected} : undefined,
+			data: result.autoSelected ? { llmConfig: result.autoSelected } : undefined,
 		};
 	}
 
@@ -483,7 +460,7 @@ Available slash commands:
 			type: 'info',
 			message:
 				'🔧 Checking available MCP tools...\n\nThis command will show tools available from connected MCP servers.\nNote: This requires the MCP service to provide tool listing functionality.',
-			data: {checkTools: true},
+			data: { checkTools: true },
 		};
 	}
 
@@ -527,7 +504,7 @@ Available slash commands:
 		return {
 			type: 'info',
 			message: `🧪 Testing server "${serverName}"...\n\nCommand: ${result.command}\n\n⚠️ Note: This will attempt to run the server command manually.\nCheck the console for output and errors.\n\n💡 Try running this command manually in your terminal:\n${result.command}`,
-			data: {testServer: true, serverName, command: result.command},
+			data: { testServer: true, serverName, command: result.command },
 		};
 	}
 
@@ -542,7 +519,7 @@ Available slash commands:
 			type: 'success',
 			message:
 				'✅ All API keys cleared from storage.\n\nUse /setkey or /model to set up a new provider.',
-			data: {llmConfig: null},
+			data: { llmConfig: null },
 		};
 	}
 
@@ -590,7 +567,7 @@ Available slash commands:
 				return {
 					type: 'prompt_server_config',
 					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
-					data: {step: 'command', config},
+					data: { step: 'command', config },
 				};
 
 			case 'name':
@@ -606,7 +583,7 @@ Available slash commands:
 				return {
 					type: 'prompt_server_config',
 					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
-					data: {step: 'command', config},
+					data: { step: 'command', config },
 				};
 
 			case 'command':
@@ -621,19 +598,17 @@ Available slash commands:
 				return {
 					type: 'prompt_server_config',
 					message: `Server name: ${config.name}\nCommand: ${config.command}\n\nEnter arguments (space-separated, or press Enter for none):\nExample: "-y @modelcontextprotocol/server-filesystem /tmp"`,
-					data: {step: 'args', config},
+					data: { step: 'args', config },
 				};
 
 			case 'args':
 				config.args = input.trim() ? input.trim().split(/\s+/) : [];
 				return {
 					type: 'prompt_server_config',
-					message: `Server name: ${config.name}\nCommand: ${
-						config.command
-					}\nArgs: ${
-						config.args.length > 0 ? config.args.join(' ') : 'none'
-					}\n\nEnter environment variables (KEY=VALUE format, one per line, or press Enter for none):\nExample: "DEBUG=1" or press Enter to skip:`,
-					data: {step: 'env', config},
+					message: `Server name: ${config.name}\nCommand: ${config.command
+						}\nArgs: ${config.args.length > 0 ? config.args.join(' ') : 'none'
+						}\n\nEnter environment variables (KEY=VALUE format, one per line, or press Enter for none):\nExample: "DEBUG=1" or press Enter to skip:`,
+					data: { step: 'env', config },
 				};
 
 			case 'env':
@@ -641,18 +616,15 @@ Available slash commands:
 
 				return {
 					type: 'prompt_server_config',
-					message: `Server Configuration Summary:\n\nName: ${
-						config.name
-					}\nCommand: ${config.command}\nArgs: ${
-						config.args.length > 0 ? config.args.join(' ') : 'none'
-					}\nEnv: ${
-						Object.keys(config.env).length > 0
+					message: `Server Configuration Summary:\n\nName: ${config.name
+						}\nCommand: ${config.command}\nArgs: ${config.args.length > 0 ? config.args.join(' ') : 'none'
+						}\nEnv: ${Object.keys(config.env).length > 0
 							? Object.entries(config.env)
-									.map(([k, v]) => `${k}=${v}`)
-									.join(', ')
+								.map(([k, v]) => `${k}=${v}`)
+								.join(', ')
 							: 'none'
-					}\n\nConfirm to add this server? (y/n):`,
-					data: {step: 'confirm', config},
+						}\n\nConfirm to add this server? (y/n):`,
+					data: { step: 'confirm', config },
 				};
 
 			case 'confirm':
@@ -716,7 +688,7 @@ Available slash commands:
 				type: 'prompt_server_config',
 				message:
 					'Let\'s configure a new MCP server!\n\nYou can either:\n1. Enter a server name for interactive setup\n2. Paste a complete JSON configuration\n\nExample JSON:\n{\n  "mcpServers": {\n    "myserver": {\n      "command": "npx",\n      "args": ["-y", "@example/server"]\n    }\n  }\n}\n\nEnter server name or paste JSON:',
-				data: {step: 'name_or_json'},
+				data: { step: 'name_or_json' },
 			};
 		}
 
@@ -884,7 +856,7 @@ Available slash commands:
 		return {
 			type: 'success',
 			message: `✅ ${provider} API key set (${maskedKey})\n🤖 Switched to ${provider}/${model}`,
-			data: {llmConfig: this.llmService.getCurrentConfig()},
+			data: { llmConfig: this.llmService.getCurrentConfig() },
 		};
 	}
 
@@ -933,16 +905,14 @@ Available slash commands:
 
 					return {
 						type: 'info',
-						message: `📋 Recent log entries (last ${
-							recentLines.length
-						} lines):\n\n${recentLines.join('\n')}`,
+						message: `📋 Recent log entries (last ${recentLines.length
+							} lines):\n\n${recentLines.join('\n')}`,
 					};
 				} catch (error) {
 					return {
 						type: 'error',
-						message: `❌ Failed to read logs: ${
-							error instanceof Error ? error.message : 'Unknown error'
-						}`,
+						message: `❌ Failed to read logs: ${error instanceof Error ? error.message : 'Unknown error'
+							}`,
 					};
 				}
 
@@ -965,9 +935,8 @@ Available slash commands:
 		} catch (error) {
 			return {
 				type: 'error',
-				message: `❌ Failed to clear logs: ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				message: `❌ Failed to clear logs: ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 			};
 		}
 	}

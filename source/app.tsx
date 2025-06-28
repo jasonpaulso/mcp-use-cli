@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import BigText from 'ink-big-text';
-import { mcpService } from './services/mcp-service.js';
+import { cliService } from './services/cli-service.js';
 import { Logger } from './logger.js';
 import { InputPrompt } from './components/InputPrompt.js';
 import Spinner from './components/Spinner.js';
@@ -41,9 +41,9 @@ export default function App() {
 			try {
 				Logger.info('Initializing MCP service...');
 				setIsLoading(true);
-				await mcpService.initialize();
-				const model = mcpService.getCurrentModel();
-				const servers = mcpService.getConnectedServers();
+				await cliService.initialize();
+				const model = cliService.getCurrentModel();
+				const servers = cliService.getConnectedServers();
 
 				Logger.info('MCP service initialized successfully', {
 					model,
@@ -178,7 +178,7 @@ export default function App() {
 
 			try {
 				// Import CommandHandler to access handleServerConfigInput
-				const result = await mcpService.sendMessage(
+				const result = await cliService.sendMessage(
 					trimmedInput,
 					false,
 					'',
@@ -206,8 +206,8 @@ export default function App() {
 
 						// Update connected servers if servers were connected or disconnected
 						if (result.commandResult.data?.reinitializeAgent) {
-							await mcpService.initializeAgent();
-							setConnectedServers(mcpService.getConnectedServers());
+							await cliService.initializeAgent();
+							setConnectedServers(cliService.getConnectedServers());
 						}
 					}
 					const commandMessage: CommandMessage = {
@@ -267,7 +267,7 @@ export default function App() {
 			setIsLoading(true);
 
 			try {
-				const result = await mcpService.sendMessage(
+				const result = await cliService.sendMessage(
 					trimmedInput.trim(),
 					true,
 					pendingProvider,
@@ -291,7 +291,7 @@ export default function App() {
 
 					// Update current model if successful
 					if (result.commandResult.data?.llmConfig) {
-						setCurrentModel(mcpService.getCurrentModel());
+						setCurrentModel(cliService.getCurrentModel());
 					}
 
 					// Reset API key input state
@@ -340,7 +340,7 @@ export default function App() {
 		setIsLoading(true);
 
 		try {
-			const result = await mcpService.sendMessage(trimmedInput);
+			const result = await cliService.sendMessage(trimmedInput);
 
 			Logger.debug('Message result received', {
 				isCommand: result.isCommand,
@@ -351,8 +351,8 @@ export default function App() {
 			if (result.isCommand && result.commandResult) {
 				// Check if we need to prompt for API key
 				if (result.commandResult.data?.reinitializeAgent) {
-					await mcpService.initializeAgent();
-					setConnectedServers(mcpService.getConnectedServers());
+					await cliService.initializeAgent();
+					setConnectedServers(cliService.getConnectedServers());
 				}
 
 				// Check if we need to prompt for API key
@@ -372,7 +372,7 @@ export default function App() {
 					setCurrentServerConfig(result.commandResult.data.config || null);
 				} else if (result.commandResult.data?.hasOwnProperty('llmConfig')) {
 					// Update current model if it changed (including null for clearkeys)
-					setCurrentModel(mcpService.getCurrentModel());
+					setCurrentModel(cliService.getCurrentModel());
 				}
 				const commandMessage: CommandMessage = {
 					id: (Date.now() + 1).toString(),
@@ -484,10 +484,9 @@ export default function App() {
 					<Box marginBottom={1}>
 						<Box marginRight={1}>
 							<Text color="blue">
-								<Spinner type="mindblown" />
+								<Spinner type="dots" />
 							</Text>
 						</Box>
-						<Text color="gray">Thinking...</Text>
 					</Box>
 				)}
 			</Box>
