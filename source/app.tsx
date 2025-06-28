@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
-import BigText from 'ink-big-text';
 import { cliService } from './services/cli-service.js';
 import { Logger } from './logger.js';
 import { InputPrompt } from './components/InputPrompt.js';
@@ -420,7 +419,7 @@ export default function App() {
 			<Box borderStyle="round" borderColor="blue" paddingX={1} marginBottom={1}>
 				<Box flexDirection="column" width="100%">
 					<Box flexDirection="row" justifyContent="space-between" width="100%">
-						<AsciiLogo />
+						<Text color="blue">mcp use</Text>
 						<Text color="gray">Model: {currentModel}</Text>
 					</Box>
 					<Box flexDirection="row" justifyContent="flex-start" width="100%">
@@ -443,7 +442,7 @@ export default function App() {
 
 				{!initializationError && messages.length === 0 && !isLoading && (
 					<Box marginBottom={1} flexDirection="column">
-						<BigText text="MCP USE CLI" colors={['white']} />
+						<AsciiLogo/>
 						<Text color="gray">Welcome to MCP-Use CLI!</Text>
 						{currentModel.includes('No') ? (
 							<Box flexDirection="column">

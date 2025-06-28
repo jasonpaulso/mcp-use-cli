@@ -1,10 +1,11 @@
 import React from 'react';
 import {Text} from 'ink';
+import BigText from 'ink-big-text';
 
 export default function AsciiLogo() {
 	return (
 		<Text>
-			<Text color="blue">mcp</Text>use
+			<BigText colors={['white']} text="mcp use cli" />
 		</Text>
 	);
 }
