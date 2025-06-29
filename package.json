@@ -1,6 +1,6 @@
 {
 	"name": "@mcp-use/cli",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"description": "A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language",
 	"keywords": [
@@ -26,18 +26,27 @@
 	"scripts": {
 		"build": "tsc",
 		"dev": "tsc --watch",
-		"test": "prettier --check . && xo && ava"
+		"test": "prettier --check . && xo && ava",
+		"release": "np"
 	},
 	"files": [
 		"dist"
 	],
 	"dependencies": {
 		"@hey-api/client-fetch": "^0.12.0",
-		"@langchain/anthropic": "^0.3.14",
+		"@huggingface/inference": "^4.1.0",
+		"@langchain/anthropic": "^0.3.23",
+		"@langchain/cohere": "^0.3.4",
+		"@langchain/community": "^0.3.47",
 		"@langchain/core": "0.3.58",
-		"@langchain/google-genai": "^0.2.13",
+		"@langchain/deepseek": "^0.0.2",
+		"@langchain/google-genai": "^0.2.14",
+		"@langchain/google-vertexai": "^0.2.14",
+		"@langchain/groq": "^0.2.3",
 		"@langchain/mistralai": "^0.2.1",
+		"@langchain/ollama": "^0.2.3",
 		"@langchain/openai": "^0.5.15",
+		"@langchain/xai": "^0.0.3",
 		"@mcp-use/cli": "^1.0.0",
 		"@modelcontextprotocol/sdk": "^1.13.2",
 		"cli-spinners": "^3.2.0",
@@ -61,6 +70,7 @@
 		"eslint-plugin-react": "^7.32.2",
 		"eslint-plugin-react-hooks": "^4.6.0",
 		"ink-testing-library": "^3.0.0",
+		"np": "^10.0.0",
 		"prettier": "^2.8.7",
 		"ts-node": "^10.9.1",
 		"typescript": "^5.0.3",
