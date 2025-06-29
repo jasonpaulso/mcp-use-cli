@@ -8,7 +8,7 @@ interface ServerStatusProps {
 
 export function ServerStatus({ servers }: ServerStatusProps) {
     return (
-        <Box flexDirection="column" marginBottom={1}>
+        <Box flexDirection="column" >
             {servers.map(server => (
                 <Box
                     key={server.name}
@@ -16,7 +16,6 @@ export function ServerStatus({ servers }: ServerStatusProps) {
                     borderStyle="round"
                     borderColor="gray"
                     paddingX={1}
-                    marginBottom={1}
                 >
                     <Box>
                         {server.isConnected ? <Text bold> 🔹{server.name}</Text> : <Text bold> 🔸 {server.name}</Text>}

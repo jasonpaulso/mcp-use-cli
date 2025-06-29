@@ -25,20 +25,8 @@ export function ToolStatus({ tools, error }: ToolStatusProps) {
     if (tools.length === 0) {
         return (
             <Box flexDirection="column" marginTop={1}>
-                <Text color="yellow">❌ No MCP tools found</Text>
-                <Text >💡 This suggests:</Text>
-                <Box marginLeft={2} flexDirection="column">
-                    <Text>• MCP servers failed to start or connect</Text>
-                    <Text>• Server packages may not be installed</Text>
-                </Box>
-                <Text >🔍 Debug steps:</Text>
-                <Box marginLeft={2} flexDirection="column">
-                    <Text>1. Check console logs for errors</Text>
-                    <Text>2. Test server manually: /test-server &lt;name&gt;</Text>
-                    <Text>
-                        3. Ask agent "Which tools do you have?" to see fallback tools
-                    </Text>
-                </Box>
+                <Text color="white"> No MCP tools found</Text>
+                <Text > Add tools from a server by running /server connect &lt;name&gt;</Text>
             </Box>
         );
     }

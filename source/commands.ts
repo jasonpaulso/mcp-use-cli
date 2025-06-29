@@ -549,7 +549,7 @@ Available slash commands:
 
 					return {
 						type: 'success',
-						message: `${result.message}. Reinitializing agent.`,
+						message: `${result.message}.`,
 						data: result.data,
 					};
 				}
@@ -648,7 +648,7 @@ Available slash commands:
 
 					return {
 						type: 'success',
-						message: `${result.message}. Reinitializing agent.`,
+						message: `${result.message}.`,
 						data: result.data,
 					};
 				} else if (
@@ -790,7 +790,7 @@ Available slash commands:
 
 		return {
 			type: 'success',
-			message: `${result.message}. Reinitializing agent.`,
+			message: `${result.message}.`,
 			data: result.data,
 		};
 	}
@@ -806,7 +806,7 @@ Available slash commands:
 
 		return {
 			type: 'success',
-			message: `${result.message}. Reinitializing agent.`,
+			message: `${result.message}.`,
 			data: result.data,
 		};
 	}

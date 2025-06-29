@@ -9,7 +9,7 @@ export const UserMessageRenderer = ({ message }: { message: Message }) => {
 	return (
 		<Box key={message.id} marginBottom={1} flexDirection="row">
 			<Box marginRight={1}>
-				<Text color="green" bold>
+				<Text color="white" bold>
 					●
 				</Text>
 			</Box>
