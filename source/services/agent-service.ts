@@ -1,74 +1,27 @@
 import { MCPAgent, MCPClient } from 'mcp-use';
 import { Logger } from '../logger.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolCall } from '../types.js';
+import type { ToolCall, CommandResult } from '../types.js';
 import { LLMService } from './llm-service.js';
-import { MCPConfigService } from './mcp-config-service.js';
-import { ServerManager, LangChainAdapter} from 'mcp-use';
-import { AddMCPServerTool } from 'mcp-use'
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
-	mcpConfigService: MCPConfigService;
 }
 
 export class AgentService {
 	private agent: MCPAgent | null = null;
 	private client: MCPClient | null = null;
 	private llmService: LLMService;
-	private mcpConfigService: MCPConfigService;
 
 	constructor(deps: AgentServiceDeps) {
 		this.llmService = deps.llmService;
-		this.mcpConfigService = deps.mcpConfigService;
-	}
-
-	public async initializeAgent() {
-		const llm = this.llmService.createLLM();
-		const sessionServers = this.mcpConfigService.getSessionServers();
-
-		if (!llm) {
-			this.agent = null;
-			this.client = null;
-			Logger.info('LLM not provided, skipping agent initialization.');
-			return;
-		}
-
-		try {
-			const config = {
-				mcpServers: {
-					...sessionServers,
-				},
-			};
-			Logger.info('Initializing MCP client with config', { config });
-			this.client = new MCPClient(config);
-			const serverManager = new ServerManager(this.client, new LangChainAdapter());
-			serverManager.setManagementTools([new AddMCPServerTool(serverManager)])
-
-			this.agent = new MCPAgent({
-				llm,
-				client: this.client,
-				maxSteps: 15,
-				memoryEnabled: true, // Enable built-in conversation memory
-				useServerManager: true,
-				serverManagerFactory: () => serverManager,
-			});
-
-			Logger.info('Initializing MCP agent...');
-			await this.agent.initialize();
-			Logger.info('MCP agent initialized successfully');
-
-			// Provide the client to the config service so it can get real-time status
-			this.mcpConfigService.setClient(this.client);
-		} catch (error) {
-			Logger.error('Failed to initialize agent', {
-				error: error instanceof Error ? error.message : String(error),
-			});
-			this.agent = null;
-			this.client = null;
-			// Re-throw to allow the caller to handle it
-			throw error;
-		}
+		this.client = new MCPClient({});
+		this.agent = new MCPAgent({
+			llm: this.llmService.createLLM(),
+			client: this.client,
+			maxSteps: 15,
+			memoryEnabled: true, // Enable built-in conversation memory
+		});
 	}
 
 	public isReady(): boolean {
@@ -138,10 +91,11 @@ export class AgentService {
 		try {
 			let allTools: Tool[] = [];
 			const sessions = this.client.getAllActiveSessions();
-
-			// Iterate through sessions to get tools
 			for (const [sessionName, session] of Object.entries(sessions)) {
-				if (session.connector?.tools && Array.isArray(session.connector.tools)) {
+				if (
+					session.connector?.tools &&
+					Array.isArray(session.connector.tools)
+				) {
 					Logger.debug(`Found tools in connector for session ${sessionName}`, {
 						toolCount: session.connector.tools.length,
 					});
@@ -165,5 +119,105 @@ export class AgentService {
 				error: errorMsg,
 			};
 		}
+	}
+
+	/**
+	 * Handles the /tools command to list available MCP tools.
+	 * @returns A CommandResult indicating that tools should be checked
+	 */
+	handleListToolsCommand(): CommandResult {
+		return {
+			type: 'info',
+			message:
+				'🔧 Checking available MCP tools...\n\nThis command will show tools available from connected MCP servers.\nNote: This requires the MCP service to provide tool listing functionality.',
+			data: { checkTools: true },
+		};
+	}
+
+	/**
+	 * Gets all active MCP sessions.
+	 * @returns Object with session names as keys
+	 */
+	getActiveSessions(): Record<string, any> {
+		if (!this.client) {
+			return {};
+		}
+		try {
+			return this.client.getAllActiveSessions();
+		} catch (error) {
+			Logger.error('Failed to get active sessions', {
+				error: error instanceof Error ? error.message : 'Unknown error',
+			});
+			return {};
+		}
+	}
+
+	/**
+	 * Checks if a specific server is connected.
+	 * @param serverName - Name of the server to check
+	 * @returns True if the server is connected
+	 */
+	isServerConnected(serverName: string): boolean {
+		const sessions = this.getActiveSessions();
+		return !!sessions[serverName];
+	}
+
+	/**
+	 * Gets the list of connected server names.
+	 * @returns Array of connected server names
+	 */
+	getConnectedServerNames(): string[] {
+		return Object.keys(this.getActiveSessions());
+	}
+
+	/**
+	 * Connects a new MCP server without reinitializing the entire agent.
+	 * @param serverName - Name of the server to connect
+	 * @param serverConfig - Configuration for the server
+	 * @returns Promise that resolves when connected
+	 */
+	async connectServer(serverName: string, serverConfig: any): Promise<void> {
+		if (!this.agent || !this.client) {
+			throw new Error('Agent not initialized');
+		}
+
+		if (this.isServerConnected(serverName)) {
+			throw new Error(`Server "${serverName}" is already connected`);
+		}
+		Logger.info('Connecting to server', serverName);
+		const currentConfig = this.client.getConfig();
+		const newConfig = {
+			mcpServers: {
+				...currentConfig["mcpServers"],
+				[serverName]: serverConfig,
+			}
+		}
+		this.client = new MCPClient(newConfig);
+
+		this.agent = new MCPAgent({
+			llm: this.llmService.createLLM(),
+			client: this.client,
+			maxSteps: 30,
+			memoryEnabled: true, // Enable built-in conversation memory
+		});
+		await this.agent?.initialize();
+	}
+
+	/**
+	 * Disconnects an MCP server without reinitializing the entire agent.
+	 * @param serverName - Name of the server to disconnect
+	 * @returns Promise that resolves when disconnected
+	 */
+	async disconnectServer(serverName: string): Promise<void> {
+		if (!this.agent || !this.client) {
+			throw new Error('Agent not initialized');
+		}
+
+		if (!this.isServerConnected(serverName)) {
+			throw new Error(`Server "${serverName}" is not connected`);
+		}
+
+		this.client?.removeServer(serverName);
+		this.agent?.initialize();
 	}
 }

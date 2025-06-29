@@ -1,11 +1,11 @@
-import { CommandMessage, ToolCall } from '../types.js';
-import { Message } from '../types.js';
+import {CommandMessage, ToolCall} from '../types.js';
+import {Message} from '../types.js';
 import React from 'react';
-import { Box, Text } from 'ink';
-import { ServerStatus } from './ServerStatus.js';
-import { ToolStatus } from './ToolStatus.js';
+import {Box, Text} from 'ink';
+import {ServerStatus} from './ServerStatus.js';
+import {ToolStatus} from './ToolStatus.js';
 
-export const UserMessageRenderer = ({ message }: { message: Message }) => {
+export const UserMessageRenderer = ({message}: {message: Message}) => {
 	return (
 		<Box key={message.id} marginBottom={1} flexDirection="row">
 			<Box marginRight={1}>
@@ -20,7 +20,7 @@ export const UserMessageRenderer = ({ message }: { message: Message }) => {
 	);
 };
 
-export const AssistantMessageRenerer = ({ message }: { message: Message }) => {
+export const AssistantMessageRenerer = ({message}: {message: Message}) => {
 	return (
 		<Box key={message.id} marginBottom={1} flexDirection="row">
 			<Box marginRight={1}>
@@ -35,7 +35,7 @@ export const AssistantMessageRenerer = ({ message }: { message: Message }) => {
 	);
 };
 
-export const ThoughtMessageRenderer = ({ message }: { message: Message }) => {
+export const ThoughtMessageRenderer = ({message}: {message: Message}) => {
 	return (
 		<Box key={message.id} marginBottom={1} flexDirection="row">
 			<Box marginRight={1}>
@@ -52,7 +52,7 @@ export const ThoughtMessageRenderer = ({ message }: { message: Message }) => {
 	);
 };
 
-export const ToolCallRenderer = ({ message }: { message: ToolCall }) => {
+export const ToolCallRenderer = ({message}: {message: ToolCall}) => {
 	const input = JSON.stringify(message.tool_input);
 	const output = JSON.stringify(message.tool_output);
 
@@ -74,12 +74,10 @@ export const ToolCallRenderer = ({ message }: { message: ToolCall }) => {
 					Tool: {message.tool_name}
 				</Text>
 				<Text>
-					Input:{' '}
-					{input.length > 100 ? `${input.slice(0, 97)}...` : input}
+					Input: {input.length > 100 ? `${input.slice(0, 97)}...` : input}
 				</Text>
 				<Text>
-					Output:{' '}
-					{output.length > 100 ? `${output.slice(0, 97)}...` : output}
+					Output: {output.length > 100 ? `${output.slice(0, 97)}...` : output}
 				</Text>
 			</Box>
 		</Box>
@@ -91,7 +89,7 @@ export const CommandMessageRenderer = ({
 }: {
 	message: CommandMessage;
 }) => {
-	const { commandResult } = message;
+	const {commandResult} = message;
 
 	let color = 'magenta'; // Default for info/system
 	if (commandResult.type === 'error') color = 'red';
@@ -118,13 +116,12 @@ export const CommandMessageRenderer = ({
 					commandResult.data?.servers && (
 						<ServerStatus servers={commandResult.data.servers} />
 					)}
-				{commandResult.type === 'list_tools' &&
-					commandResult.data && (
-						<ToolStatus
-							tools={commandResult.data.tools}
-							error={commandResult.data.error}
-						/>
-					)}
+				{commandResult.type === 'list_tools' && commandResult.data && (
+					<ToolStatus
+						tools={commandResult.data.tools}
+						error={commandResult.data.error}
+					/>
+				)}
 			</Box>
 		</Box>
 	);

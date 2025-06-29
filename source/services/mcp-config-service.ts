@@ -1,4 +1,5 @@
 import {SecureStorage, StoredConfig} from '../storage.js';
+import type {CommandResult} from '../types.js';
 
 export interface MCPServerConfig {
 	command: string;
@@ -14,14 +15,9 @@ export interface MCPServerConfigResult {
 
 export class MCPConfigService {
 	private persistentConfig: StoredConfig;
-	private sessionServers: Record<string, MCPServerConfig> = {};
 
 	constructor() {
 		this.persistentConfig = SecureStorage.loadConfig();
-	}
-
-	getSessionServers(): Record<string, MCPServerConfig> {
-		return this.sessionServers;
 	}
 
 	getConfiguredServers(): Record<string, MCPServerConfig> {
@@ -30,10 +26,6 @@ export class MCPConfigService {
 
 	isServerConfigured(serverName: string): boolean {
 		return !!this.persistentConfig.mcpServers?.[serverName];
-	}
-
-	isServerConnected(serverName: string): boolean {
-		return !!this.sessionServers[serverName];
 	}
 
 	addServerFromJSON(jsonConfig: string): MCPServerConfigResult {
@@ -95,19 +87,14 @@ export class MCPConfigService {
 			Object.assign(this.persistentConfig.mcpServers, servers);
 			SecureStorage.saveConfig(this.persistentConfig);
 
-			// Auto-connect all newly configured servers
-			Object.assign(this.sessionServers, servers);
-
 			const serverList = serverNames.map(name => `• ${name}`).join('\n');
 
 			return {
 				success: true,
-				message: `Configured and connected ${serverNames.length} server(s)!\n\n${serverList}`,
+				message: `Configured ${serverNames.length} server(s)!\n\n${serverList}`,
 				data: {
 					serversAdded: true,
-					serverConnected: true,
 					serverNames,
-					reinitializeAgent: true,
 				},
 			};
 		} catch (error) {
@@ -139,97 +126,48 @@ export class MCPConfigService {
 		// Save configuration
 		SecureStorage.saveConfig(this.persistentConfig);
 
-		// Auto-connect the newly configured server
-		this.sessionServers[name] = config;
-
 		return {
 			success: true,
-			message: `Server "${name}" configured and connected!`,
+			message: `Server "${name}" configured!`,
 			data: {
 				serverAdded: true,
-				serverConnected: true,
 				serverName: name,
-				reinitializeAgent: true,
 			},
 		};
 	}
 
-	connectServer(serverName: string): MCPServerConfigResult {
-		// Check if server is configured
-		const configuredServer = this.persistentConfig.mcpServers?.[serverName];
-		if (!configuredServer) {
-			const availableServers = Object.keys(
-				this.persistentConfig.mcpServers || {},
-			);
-			return {
-				success: false,
-				message: `Server "${serverName}" is not configured.\n\nConfigured servers: ${
-					availableServers.length > 0 ? availableServers.join(', ') : 'none'
-				}\n\nUse /server add to configure new servers.`,
-			};
-		}
-
-		// Check if already connected
-		if (this.sessionServers[serverName]) {
-			return {
-				success: true,
-				message: `Server "${serverName}" is already connected.`,
-			};
-		}
-
-		// Connect the server (add to session servers)
-		this.sessionServers[serverName] = configuredServer;
-
-		return {
-			success: true,
-			message: `Connected to server "${serverName}"!`,
-			data: {serverConnected: true, serverName, reinitializeAgent: true},
-		};
+	/**
+	 * Gets the configuration for a specific server.
+	 * @param serverName - Name of the server
+	 * @returns The server configuration or null if not found
+	 */
+	getServerConfig(serverName: string): MCPServerConfig | null {
+		return this.persistentConfig.mcpServers?.[serverName] || null;
 	}
 
-	disconnectServer(serverName: string): MCPServerConfigResult {
-		// Check if server is connected
-		if (!this.sessionServers[serverName]) {
-			const connectedServers = Object.keys(this.sessionServers);
-			return {
-				success: false,
-				message: `Server "${serverName}" is not connected.\n\nConnected servers: ${
-					connectedServers.length > 0 ? connectedServers.join(', ') : 'none'
-				}`,
-			};
-		}
-
-		// Disconnect the server (remove from session servers)
-		delete this.sessionServers[serverName];
-
-		return {
-			success: true,
-			message: `Disconnected from server "${serverName}".`,
-			data: {serverDisconnected: true, serverName, reinitializeAgent: true},
-		};
-	}
-
-	getServerStatus(): Array<{
+	/**
+	 * Gets all configured servers with their configurations.
+	 * Note: Connection status should be determined by the caller using AgentService.
+	 * @returns Array of server configurations
+	 */
+	getAllServers(): Array<{
 		name: string;
-		isConnected: boolean;
 		config: MCPServerConfig;
 	}> {
 		const persistentServers = this.persistentConfig.mcpServers || {};
-		const status: Array<{
+		const servers: Array<{
 			name: string;
-			isConnected: boolean;
 			config: MCPServerConfig;
 		}> = [];
 
 		for (const [name, config] of Object.entries(persistentServers)) {
-			status.push({
+			servers.push({
 				name,
-				isConnected: !!this.sessionServers[name],
 				config,
 			});
 		}
 
-		return status;
+		return servers;
 	}
 
 	getServerTestCommand(serverName: string): {
@@ -288,5 +226,322 @@ export class MCPConfigService {
 			}
 		}
 		return env;
+	}
+
+	/**
+	 * Handles the /server command and its subcommands.
+	 * @param args - Array of arguments where args[0] is the subcommand
+	 * @returns A CommandResult with the appropriate response
+	 */
+	handleServerCommand(args: string[]): CommandResult {
+		if (args.length === 0) {
+			return {
+				type: 'info',
+				message:
+					'Server management commands:\n\n/server add              - Configure a new server (stored but not connected)\n/server connect <name>   - Connect to a configured server by name\n/server disconnect <name> - Disconnect from a connected server\n/servers                 - List configured servers and connection status\n\nUse /server <command> for specific help.',
+			};
+		}
+
+		if (args[0] === 'add') {
+			return {
+				type: 'prompt_server_config',
+				message:
+					'Let\'s configure a new MCP server!\n\nYou can either:\n1. Enter a server name for interactive setup\n2. Paste a complete JSON configuration\n\nExample JSON:\n{\n  "mcpServers": {\n    "myserver": {\n      "command": "npx",\n      "args": ["-y", "@example/server"]\n    }\n  }\n}\n\nEnter server name or paste JSON:',
+				data: {step: 'name_or_json'},
+			};
+		}
+
+		if (args[0] === 'connect') {
+			if (args.length < 2) {
+				const configuredServers = Object.keys(this.getConfiguredServers());
+				if (configuredServers.length === 0) {
+					return {
+						type: 'error',
+						message:
+							'No servers configured. Use /server add to configure servers first.\n\nUsage: /server connect <server_name>',
+					};
+				}
+				return {
+					type: 'error',
+					message: `Usage: /server connect <server_name>\n\nConfigured servers: ${configuredServers.join(
+						', ',
+					)}`,
+				};
+			}
+
+			const serverName = args[1];
+			if (!serverName) {
+				return {
+					type: 'error',
+					message:
+						'Server name is required.\n\nUsage: /server connect <server_name>',
+				};
+			}
+			return {
+				type: 'info',
+				message: `Server connect command received for: ${serverName}`,
+				data: {connectServer: true, serverName},
+			};
+		}
+
+		if (args[0] === 'disconnect') {
+			if (args.length < 2) {
+				return {
+					type: 'error',
+					message: 'Usage: /server disconnect <server_name>',
+				};
+			}
+
+			const serverName = args[1];
+			if (!serverName) {
+				return {
+					type: 'error',
+					message:
+						'Server name is required.\n\nUsage: /server disconnect <server_name>',
+				};
+			}
+			return {
+				type: 'info',
+				message: `Server disconnect command received for: ${serverName}`,
+				data: {disconnectServer: true, serverName},
+			};
+		}
+
+		return {
+			type: 'error',
+			message:
+				'Usage: /server <command>\n\nCommands:\n  add              - Configure server\n  connect <name>   - Connect to server\n  disconnect <name> - Disconnect server\n\nExample: /server connect airbnb',
+		};
+	}
+
+	/**
+	 * Handles the /servers command to list all servers and their connection status.
+	 * @returns A CommandResult with the server list
+	 */
+	handleListServersCommand(): CommandResult {
+		const servers = this.getAllServers();
+
+		if (servers.length === 0) {
+			return {
+				type: 'info',
+				message:
+					'No custom servers configured.\n\nUse /server add to configure servers, then /server connect <name> to connect.',
+			};
+		}
+
+		return {
+			type: 'list_servers',
+			message: 'MCP Server Status:',
+			data: {servers},
+		};
+	}
+
+	/**
+	 * Handles the /test-server command to test server configuration.
+	 * @param args - Array where args[0] is the server name
+	 * @returns A CommandResult with test information
+	 */
+	handleTestServerCommand(args: string[]): CommandResult {
+		if (args.length === 0) {
+			const configuredServers = Object.keys(this.getConfiguredServers());
+			if (configuredServers.length === 0) {
+				return {
+					type: 'error',
+					message:
+						'No servers configured to test.\n\nUsage: /test-server <server_name>\n\nUse /server add to configure servers first.',
+				};
+			}
+			return {
+				type: 'info',
+				message: `Usage: /test-server <server_name>\n\nConfigured servers: ${configuredServers.join(
+					', ',
+				)}\n\nThis command will test if the server package can be started manually.`,
+			};
+		}
+
+		const serverName = args[0];
+		if (!serverName) {
+			return {
+				type: 'error',
+				message:
+					'Server name is required.\n\nUsage: /test-server <server_name>',
+			};
+		}
+
+		const result = this.getServerTestCommand(serverName);
+		if (!result.success) {
+			return {
+				type: 'error',
+				message: result.message!,
+			};
+		}
+
+		return {
+			type: 'info',
+			message: `🧪 Testing server "${serverName}"...\n\nCommand: ${result.command}\n\n⚠️ Note: This will attempt to run the server command manually.\nCheck the console for output and errors.\n\n💡 Try running this command manually in your terminal:\n${result.command}`,
+			data: {testServer: true, serverName, command: result.command},
+		};
+	}
+
+	/**
+	 * Handles server configuration input during the interactive setup flow.
+	 * @param input - User input string
+	 * @param step - Current step in the configuration flow
+	 * @param serverConfig - Partial server configuration being built
+	 * @returns A CommandResult to continue or complete the flow
+	 */
+	handleServerConfigInput(
+		input: string,
+		step: string,
+		serverConfig?: any,
+	): CommandResult {
+		const config = serverConfig || {};
+
+		switch (step) {
+			case 'name_or_json':
+				// Check if input looks like JSON
+				const trimmedInput = input.trim();
+				if (
+					trimmedInput.startsWith('{') &&
+					trimmedInput.includes('mcpServers')
+				) {
+					const result = this.addServerFromJSON(trimmedInput);
+					if (!result.success) {
+						return {
+							type: 'error',
+							message: result.message,
+						};
+					}
+
+					return {
+						type: 'success',
+						message: `${result.message}.`,
+						data: result.data,
+					};
+				}
+
+				// Not JSON, treat as server name for interactive setup
+				const validation = this.validateServerName(trimmedInput);
+				if (!validation.valid) {
+					return {
+						type: 'error',
+						message: validation.message!,
+					};
+				}
+
+				config.name = trimmedInput;
+				return {
+					type: 'prompt_server_config',
+					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
+					data: {step: 'command', config},
+				};
+
+			case 'name':
+				const nameValidation = this.validateServerName(input.trim());
+				if (!nameValidation.valid) {
+					return {
+						type: 'error',
+						message: nameValidation.message!,
+					};
+				}
+
+				config.name = input.trim();
+				return {
+					type: 'prompt_server_config',
+					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
+					data: {step: 'command', config},
+				};
+
+			case 'command':
+				if (!input.trim()) {
+					return {
+						type: 'error',
+						message: 'Command cannot be empty.',
+					};
+				}
+
+				config.command = input.trim();
+				return {
+					type: 'prompt_server_config',
+					message: `Server name: ${config.name}\nCommand: ${config.command}\n\nEnter arguments (space-separated, or press Enter for none):\nExample: "-y @modelcontextprotocol/server-filesystem /tmp"`,
+					data: {step: 'args', config},
+				};
+
+			case 'args':
+				config.args = input.trim() ? input.trim().split(/\s+/) : [];
+				return {
+					type: 'prompt_server_config',
+					message: `Server name: ${config.name}\nCommand: ${
+						config.command
+					}\nArgs: ${
+						config.args.length > 0 ? config.args.join(' ') : 'none'
+					}\n\nEnter environment variables (KEY=VALUE format, one per line, or press Enter for none):\nExample: "DEBUG=1" or press Enter to skip:`,
+					data: {step: 'env', config},
+				};
+
+			case 'env':
+				config.env = this.parseEnvironmentVariables(input);
+
+				return {
+					type: 'prompt_server_config',
+					message: `Server Configuration Summary:\n\nName: ${
+						config.name
+					}\nCommand: ${config.command}\nArgs: ${
+						config.args.length > 0 ? config.args.join(' ') : 'none'
+					}\nEnv: ${
+						Object.keys(config.env).length > 0
+							? Object.entries(config.env)
+									.map(([k, v]) => `${k}=${v}`)
+									.join(', ')
+							: 'none'
+					}\n\nConfirm to add this server? (y/n):`,
+					data: {step: 'confirm', config},
+				};
+
+			case 'confirm':
+				if (
+					input.trim().toLowerCase() === 'y' ||
+					input.trim().toLowerCase() === 'yes'
+				) {
+					const serverConfig = {
+						command: config.command,
+						args: config.args,
+						env: config.env,
+					};
+
+					const result = this.addServer(config.name, serverConfig);
+					if (!result.success) {
+						return {
+							type: 'error',
+							message: result.message,
+						};
+					}
+
+					return {
+						type: 'success',
+						message: `${result.message}.`,
+						data: result.data,
+					};
+				} else if (
+					input.trim().toLowerCase() === 'n' ||
+					input.trim().toLowerCase() === 'no'
+				) {
+					return {
+						type: 'info',
+						message: 'Server configuration cancelled.',
+					};
+				} else {
+					return {
+						type: 'error',
+						message: 'Please enter "y" for yes or "n" for no.',
+					};
+				}
+
+			default:
+				return {
+					type: 'error',
+					message: 'Invalid server configuration step.',
+				};
+		}
 	}
 }

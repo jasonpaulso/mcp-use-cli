@@ -254,7 +254,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 		<Box flexDirection="column" flexGrow={1}>
 			{renderContent()}
 			{isMultiline && focus && (
-				<Box marginTop={1}>
+				<Box>
 					<Text dimColor italic>
 						Enter to submit • Ctrl/Shift+Enter for new line
 					</Text>

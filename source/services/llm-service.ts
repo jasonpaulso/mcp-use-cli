@@ -3,6 +3,7 @@ import {ChatAnthropic} from '@langchain/anthropic';
 import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
 import {ChatMistralAI} from '@langchain/mistralai';
 import {SecureStorage, StoredConfig} from '../storage.js';
+import type {CommandResult} from '../types.js';
 
 export interface LLMConfig {
 	provider: 'openai' | 'anthropic' | 'google' | 'mistral';
@@ -464,5 +465,354 @@ export class LLMService {
 			default:
 				throw new Error(`Unsupported provider: ${config.provider}`);
 		}
+	}
+
+	/**
+	 * Handles the /model command to select a provider and model.
+	 * @param args - Array of arguments where args[0] is provider and args[1] is model
+	 * @returns A CommandResult with success/error status and prompts for API key if needed
+	 */
+	handleModelCommand(args: string[]): CommandResult {
+		if (args.length < 2) {
+			const availableProviders = this.getAvailableProviders();
+			if (availableProviders.length === 0) {
+				return {
+					type: 'info',
+					message:
+						'Usage: /model <provider> <model>\n\nPopular models to try:\n• /model openai gpt-4o-mini\n• /model anthropic claude-3-5-sonnet-20241022\n• /model google gemini-1.5-pro\n\nThe CLI will prompt for your API key when needed.\nUse /models to see all available options.',
+				};
+			}
+			return {
+				type: 'error',
+				message: `Usage: /model <provider> <model>\nExample: /model openai gpt-4o\n\nAvailable providers: ${availableProviders.join(
+					', ',
+				)}`,
+			};
+		}
+
+		const provider = args[0];
+		const model = args[1];
+
+		if (!provider || !model) {
+			return {
+				type: 'error',
+				message: 'Both provider and model are required',
+			};
+		}
+
+		const availableModels = this.getAvailableModels() as Record<
+			string,
+			string[]
+		>;
+		if (!availableModels[provider]) {
+			return {
+				type: 'error',
+				message: `Unknown provider: ${provider}\nAvailable providers: ${Object.keys(
+					availableModels,
+				).join(', ')}`,
+			};
+		}
+
+		// Try to set the model
+		const result = this.setModel(provider, model);
+
+		if (!result.success) {
+			if (result.requiresApiKey) {
+				// Prompt for API key instead of showing error
+				return {
+					type: 'prompt_key',
+					message: `Please enter your ${provider.toUpperCase()} API key:`,
+					data: {
+						provider,
+						model,
+						envVar: result.envVar,
+					},
+				};
+			}
+			return {
+				type: 'error',
+				message: result.message,
+			};
+		}
+
+		return {
+			type: 'success',
+			message: `✅ ${result.message}`,
+			data: {llmConfig: this.getCurrentConfig()},
+		};
+	}
+
+	/**
+	 * Handles the /models command to list available models.
+	 * @param args - Optional array with provider name to filter models
+	 * @returns A CommandResult with the list of available models
+	 */
+	handleListModelsCommand(args: string[]): CommandResult {
+		const currentConfig = this.getCurrentConfig();
+
+		if (args.length === 0) {
+			let modelList = '📋 Available models by provider:\n\n';
+			const availableModels = this.getAvailableModels() as Record<
+				string,
+				string[]
+			>;
+
+			Object.entries(availableModels).forEach(([provider, models]) => {
+				modelList += `🔸 ${provider}:\n`;
+				models.forEach(model => {
+					const current =
+						provider === currentConfig?.provider &&
+						model === currentConfig?.model
+							? ' ← current'
+							: '';
+					modelList += `   • ${model}${current}\n`;
+				});
+				modelList += '\n';
+			});
+
+			return {
+				type: 'info',
+				message: modelList.trim(),
+			};
+		}
+
+		const provider = args[0];
+		if (!provider) {
+			return {
+				type: 'error',
+				message: 'Provider is required',
+			};
+		}
+
+		const availableModels = this.getAvailableModels() as Record<
+			string,
+			string[]
+		>;
+
+		if (!availableModels[provider]) {
+			return {
+				type: 'error',
+				message: `Unknown provider: ${provider}\nAvailable providers: ${Object.keys(
+					availableModels,
+				).join(', ')}`,
+			};
+		}
+
+		let modelList = `📋 Available ${provider} models:\n\n`;
+		const models = this.getAvailableModels(provider) as string[];
+		models.forEach(model => {
+			const current =
+				provider === currentConfig?.provider && model === currentConfig?.model
+					? ' ← current'
+					: '';
+			modelList += `• ${model}${current}\n`;
+		});
+
+		modelList += `\n Don't see your model/provider? Submit a PR to add it at https://github.com/mcp-use/mcp-use-cli/`;
+
+		return {
+			type: 'info',
+			message: modelList.trim(),
+		};
+	}
+
+	/**
+	 * Handles the /config command to adjust temperature and max tokens.
+	 * @param args - Array where args[0] is setting name and args[1] is value
+	 * @returns A CommandResult with success/error status
+	 */
+	handleConfigCommand(args: string[]): CommandResult {
+		if (args.length < 2) {
+			return {
+				type: 'error',
+				message:
+					'Usage: /config <setting> <value>\nAvailable settings: temp, tokens',
+			};
+		}
+
+		const setting = args[0];
+		const value = args[1];
+
+		if (!value) {
+			return {
+				type: 'error',
+				message: 'Value is required',
+			};
+		}
+
+		if (!this.getCurrentConfig()) {
+			return {
+				type: 'error',
+				message:
+					'No model configured. Use /model to select a provider and model first.',
+			};
+		}
+
+		switch (setting) {
+			case 'temp':
+			case 'temperature':
+				const temp = parseFloat(value);
+				if (isNaN(temp)) {
+					return {
+						type: 'error',
+						message: 'Temperature must be a number',
+					};
+				}
+				const tempResult = this.setTemperature(temp);
+				if (!tempResult.success) {
+					return {
+						type: 'error',
+						message: tempResult.message,
+					};
+				}
+				return {
+					type: 'success',
+					message: `✅ ${tempResult.message}`,
+					data: {llmConfig: this.getCurrentConfig()},
+				};
+
+			case 'tokens':
+			case 'max-tokens':
+				const tokens = parseInt(value);
+				if (isNaN(tokens)) {
+					return {
+						type: 'error',
+						message: 'Max tokens must be a number',
+					};
+				}
+				const tokensResult = this.setMaxTokens(tokens);
+				if (!tokensResult.success) {
+					return {
+						type: 'error',
+						message: tokensResult.message,
+					};
+				}
+				return {
+					type: 'success',
+					message: `✅ ${tokensResult.message}`,
+					data: {llmConfig: this.getCurrentConfig()},
+				};
+
+			default:
+				return {
+					type: 'error',
+					message: `Unknown setting: ${setting}\nAvailable settings: temp, tokens`,
+				};
+		}
+	}
+
+	/**
+	 * Handles the /setkey command to manually set API keys.
+	 * @param args - Array where args[0] is provider and args[1] is API key
+	 * @returns A CommandResult with success/error status
+	 */
+	handleSetKeyCommand(args: string[]): CommandResult {
+		if (args.length < 2) {
+			return {
+				type: 'error',
+				message:
+					'Usage: /setkey <provider> <api_key>\n\nSupported providers: openai, anthropic, google, mistral\n\nExample:\n/setkey openai sk-1234567890abcdef...',
+			};
+		}
+
+		const provider = args[0]?.toLowerCase();
+		const apiKey = args[1];
+
+		if (!provider || !apiKey) {
+			return {
+				type: 'error',
+				message: 'Both provider and API key are required',
+			};
+		}
+
+		// Validate provider
+		const validProviders = ['openai', 'anthropic', 'google', 'mistral'];
+		if (!validProviders.includes(provider)) {
+			return {
+				type: 'error',
+				message: `Invalid provider: ${provider}\nSupported providers: ${validProviders.join(
+					', ',
+				)}`,
+			};
+		}
+
+		// Check if we should auto-select this provider
+		const shouldAutoSelect = !this.getCurrentConfig();
+
+		// Set the API key
+		const result = this.setApiKey(provider, apiKey, shouldAutoSelect);
+
+		if (!result.success) {
+			return {
+				type: 'error',
+				message: result.message,
+			};
+		}
+
+		const maskedKey = this.maskApiKey(apiKey);
+		let message = `✅ ${provider} API key set (${maskedKey})`;
+
+		if (result.autoSelected) {
+			message += `\n🤖 Auto-selected ${result.autoSelected.provider}/${result.autoSelected.model}`;
+		}
+
+		return {
+			type: 'success',
+			message,
+			data: result.autoSelected ? {llmConfig: result.autoSelected} : undefined,
+		};
+	}
+
+	/**
+	 * Handles the /clearkeys command to clear all stored API keys.
+	 * @returns A CommandResult indicating success
+	 */
+	handleClearKeysCommand(): CommandResult {
+		this.clearApiKeys();
+
+		return {
+			type: 'success',
+			message:
+				'✅ All API keys cleared from storage.\n\nUse /setkey or /model to set up a new provider.',
+			data: {llmConfig: null},
+		};
+	}
+
+	/**
+	 * Handles API key input when prompted during model selection.
+	 * @param apiKey - The API key entered by the user
+	 * @param provider - The provider for the API key
+	 * @param model - The model to select after setting the key
+	 * @returns A CommandResult with success/error status
+	 */
+	handleApiKeyInput(
+		apiKey: string,
+		provider: string,
+		model: string,
+	): CommandResult {
+		// Set the API key
+		const keyResult = this.setApiKey(provider, apiKey, false);
+		if (!keyResult.success) {
+			return {
+				type: 'error',
+				message: keyResult.message,
+			};
+		}
+
+		// Now set the model
+		const modelResult = this.setModel(provider, model);
+		if (!modelResult.success) {
+			return {
+				type: 'error',
+				message: modelResult.message,
+			};
+		}
+
+		const maskedKey = this.maskApiKey(apiKey);
+		return {
+			type: 'success',
+			message: `✅ ${provider} API key set (${maskedKey})\n🤖 Switched to ${provider}/${model}`,
+			data: {llmConfig: this.getCurrentConfig()},
+		};
 	}
 }

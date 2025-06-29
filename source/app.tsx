@@ -9,6 +9,7 @@ import { CommandMessage } from './types.js';
 import { ToolCall } from './types.js';
 import { Message } from './types.js';
 import { MessageRenderer } from './components/Messages.js';
+import { Footer } from './components/Footer.js';
 
 
 export default function App() {
@@ -535,7 +536,7 @@ export default function App() {
 			</Box>
 
 			{showInput && !initializationError && (
-				<Box flexDirection="column" marginTop={1} paddingX={1}>
+				<Box flexDirection="column" marginTop={1}>
 					<Box
 						borderStyle="round"
 						borderColor={
@@ -545,8 +546,6 @@ export default function App() {
 									? 'blue'
 									: 'gray'
 						}
-						paddingX={1}
-						paddingY={1}
 						minHeight={3}
 					>
 						<Box flexDirection="row" width="100%">
@@ -568,32 +567,26 @@ export default function App() {
 											: '❯'}
 								</Text>
 							</Box>
-							<Box flexGrow={1}>
-								<InputPrompt
-									value={input}
-									onChange={setInput}
-									onSubmit={handleSubmit}
-									onHistoryUp={handleHistoryUp}
-									onHistoryDown={handleHistoryDown}
-									placeholder={
-										isWaitingForApiKey
-											? `Enter ${pendingProvider.toUpperCase()} API key...`
-											: isWaitingForServerConfig
-												? 'Enter server configuration...'
-												: 'Type your message...'
-									}
-									mask={isWaitingForApiKey ? '*' : undefined}
-								/>
-							</Box>
+							<InputPrompt
+								value={input}
+								onChange={setInput}
+								onSubmit={handleSubmit}
+								onHistoryUp={handleHistoryUp}
+								onHistoryDown={handleHistoryDown}
+								placeholder={
+									isWaitingForApiKey
+										? `Enter ${pendingProvider.toUpperCase()} API key...`
+										: isWaitingForServerConfig
+											? 'Enter server configuration...'
+											: 'Type your message...'
+								}
+								mask={isWaitingForApiKey ? '*' : undefined}
+							/>
 						</Box>
 					</Box>
 				</Box>
 			)}
-			<Box borderStyle="round" borderColor="blue" paddingX={1} minWidth={25}>
-				<Text color="blue" bold>
-					🤖 {currentModel.replace('/', ' ')}
-				</Text>
-			</Box>
+			<Footer servers={connectedServers} modelSlug={currentModel} />
 		</Box>
 	);
 }
