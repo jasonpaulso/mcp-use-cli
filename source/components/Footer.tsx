@@ -7,11 +7,14 @@ export const Footer = ({ servers, modelSlug }: { servers: any, modelSlug: string
         <Box flexDirection="row" justifyContent="space-between" paddingX={1} minWidth={25}>
             <Box justifyContent='flex-start' paddingX={1} minWidth={25}>
                 {servers.length > 0 ? (
-                    <Text>
-                        {servers.map((server: any) => (
-                            <Text key={server.name}>{server.name}</Text>
-                        ))}
+                    <>
+                    <Text color="green">
+                        ● {' '}
                     </Text>
+                    <Text >
+                        {servers.length} Server{servers.length > 1 ? 's' : ''} Connected
+                    </Text>
+                    </>
                 ) : (
                     <Text>No servers connected</Text>
                 )}

@@ -37,13 +37,8 @@ export const AssistantMessageRenerer = ({message}: {message: Message}) => {
 
 export const ThoughtMessageRenderer = ({message}: {message: Message}) => {
 	return (
-		<Box key={message.id} marginBottom={1} flexDirection="row">
-			<Box marginRight={1}>
-				<Text color="gray" bold>
-					●
-				</Text>
-			</Box>
-			<Box flexDirection="column" flexGrow={1}>
+		<Box key={message.id} flexDirection="row">
+			<Box flexDirection="column" marginRight={1} flexGrow={1}>
 				<Text color="gray" italic>
 					{message.content}
 				</Text>
@@ -57,7 +52,7 @@ export const ToolCallRenderer = ({message}: {message: ToolCall}) => {
 	const output = JSON.stringify(message.tool_output);
 
 	return (
-		<Box key={message.id} marginBottom={1} flexDirection="row">
+		<Box key={message.id} flexDirection="row">
 			<Box marginRight={1}>
 				<Text color="white" bold>
 					●

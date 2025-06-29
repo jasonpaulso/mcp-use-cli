@@ -208,7 +208,7 @@ export default function App() {
 							// Update connected servers if servers were connected or disconnected
 							if (result.commandResult.data?.reinitializeAgent) {
 								await cliService.initializeAgent();
-								setConnectedServers(cliService.getConnectedServers());
+								setConnectedServers([...cliService.getConnectedServers()]);
 							}
 						}
 						const commandMessage: CommandMessage = {
@@ -362,7 +362,7 @@ export default function App() {
 					// Check if we need to prompt for API key
 					if (chunk.commandResult.data?.reinitializeAgent) {
 						await cliService.initializeAgent();
-						setConnectedServers(cliService.getConnectedServers());
+						setConnectedServers([...cliService.getConnectedServers()]);
 					}
 
 					// Check if we need to prompt for API key
@@ -528,7 +528,7 @@ export default function App() {
 					<Box marginBottom={1}>
 						<Box marginRight={1}>
 							<Text color="blue">
-								<Spinner type="dots" />
+								<Spinner type="mcpuse" />
 							</Text>
 						</Box>
 					</Box>

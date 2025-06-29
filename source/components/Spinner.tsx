@@ -1,9 +1,3 @@
-/**
- * @license
- * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, {useState, useEffect} from 'react';
 import {Text} from 'ink';
 import spinners from 'cli-spinners';
@@ -18,11 +12,42 @@ type SpinnerProps = {
 	 */
 	type?: SpinnerName | 'mcpuse';
 };
-
 const mcpuseSpinner = {
 	interval: 80,
-	frames: ['m', 'c', 'p', 'u', 's', 'e'],
+	frames: [
+		"⠋",
+		"⠙",
+		"⠹",
+		"⠸",
+		"m",   // 5
+		"⠼",
+		"⠴",
+		"⠦",
+		"c",   // 9
+		"⠧",
+		"⠇",
+		"⠏",
+		"p",   // 13
+		"⠋",
+		"⠙",
+		"⠹",
+		"-",   // 17
+		"⠸",
+		"⠼",
+		"⠴",
+		"u",   // 21
+		"⠦",
+		"⠧",
+		"⠇",
+		"s",   // 25
+		"⠏",
+		"⠋",
+		"⠙",
+		"e"    // 29
+	]
 };
+
+
 
 /**
  * Spinner.
