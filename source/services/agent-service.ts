@@ -4,6 +4,8 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolCall } from '../types.js';
 import { LLMService } from './llm-service.js';
 import { MCPConfigService } from './mcp-config-service.js';
+import { ServerManager, LangChainAdapter} from 'mcp-use';
+import { AddMCPServerTool } from 'mcp-use'
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
@@ -40,6 +42,8 @@ export class AgentService {
 			};
 			Logger.info('Initializing MCP client with config', { config });
 			this.client = new MCPClient(config);
+			const serverManager = new ServerManager(this.client, new LangChainAdapter());
+			serverManager.setManagementTools([new AddMCPServerTool(serverManager)])
 
 			this.agent = new MCPAgent({
 				llm,
@@ -47,11 +51,15 @@ export class AgentService {
 				maxSteps: 15,
 				memoryEnabled: true, // Enable built-in conversation memory
 				useServerManager: true,
+				serverManagerFactory: () => serverManager,
 			});
 
 			Logger.info('Initializing MCP agent...');
 			await this.agent.initialize();
 			Logger.info('MCP agent initialized successfully');
+
+			// Provide the client to the config service so it can get real-time status
+			this.mcpConfigService.setClient(this.client);
 		} catch (error) {
 			Logger.error('Failed to initialize agent', {
 				error: error instanceof Error ? error.message : String(error),
