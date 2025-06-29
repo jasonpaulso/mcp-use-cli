@@ -46,6 +46,7 @@ export class AgentService {
 				client: this.client,
 				maxSteps: 15,
 				memoryEnabled: true, // Enable built-in conversation memory
+				useServerManager: true,
 			});
 
 			Logger.info('Initializing MCP agent...');
