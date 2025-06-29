@@ -100,6 +100,7 @@ export class CLIService {
 	): AsyncGenerator<{
 		response?: string;
 		toolCalls?: ToolCall[];
+		thought?: string;
 		isCommand?: boolean;
 		commandResult?: CommandResult;
 		done: boolean;
@@ -224,6 +225,7 @@ export class CLIService {
 				yield {
 					response: chunk.response,
 					toolCalls: chunk.toolCalls,
+					thought: chunk.thought,
 					isCommand: false,
 					done: false,
 				};
@@ -237,6 +239,7 @@ export class CLIService {
 			yield {
 				response: `Error: ${error instanceof Error ? error.message : 'Unknown error'
 					}`,
+				thought: undefined,
 				done: true,
 			};
 		}

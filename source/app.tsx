@@ -397,6 +397,16 @@ export default function App() {
 						setMessages(prev => [...prev, ...chunk.toolCalls!]);
 					}
 
+					if (chunk.thought) {
+						const thoughtMessage: Message = {
+							id: (Date.now() + Math.random()).toString(),
+							role: 'thought',
+							content: chunk.thought,
+							timestamp: new Date(),
+						};
+						setMessages(prev => [...prev, thoughtMessage]);
+					}
+
 					if (chunk.response) {
 						if (assistantMessageId === null) {
 							// First chunk of an assistant message

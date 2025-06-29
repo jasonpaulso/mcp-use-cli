@@ -69,6 +69,7 @@ export class AgentService {
 	async *sendMessage(message: string): AsyncGenerator<{
 		response?: string;
 		toolCalls?: ToolCall[];
+		thought?: string;
 	}> {
 		if (!this.agent) {
 			throw new Error('Agent not initialized');
@@ -84,6 +85,10 @@ export class AgentService {
 				const agentStep: any = result.value; // This is of type AgentStep
 
 				if (agentStep.action) {
+					// The 'log' contains the "Thought:" part.
+					if (agentStep.action.log) {
+						yield { thought: agentStep.action.log };
+					}
 					// Map AgentStep to our internal ToolCall type
 					const toolCall: ToolCall = {
 						id: `${agentStep.action.tool}-${Date.now()}`, // Create a simple unique ID
@@ -101,7 +106,7 @@ export class AgentService {
 			// When the generator is done, the final response is in result.value
 			const finalResponse: string = result.value;
 			if (finalResponse) {
-				yield { response: finalResponse, toolCalls: [] };
+				yield { response: finalResponse };
 			}
 		} catch (error) {
 			Logger.error('Error sending message to MCP agent', {

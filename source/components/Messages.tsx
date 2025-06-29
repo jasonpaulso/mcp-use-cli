@@ -35,6 +35,23 @@ export const AssistantMessageRenerer = ({ message }: { message: Message }) => {
 	);
 };
 
+export const ThoughtMessageRenderer = ({ message }: { message: Message }) => {
+	return (
+		<Box key={message.id} marginBottom={1} flexDirection="row">
+			<Box marginRight={1}>
+				<Text color="gray" bold>
+					●
+				</Text>
+			</Box>
+			<Box flexDirection="column" flexGrow={1}>
+				<Text color="gray" italic>
+					{message.content}
+				</Text>
+			</Box>
+		</Box>
+	);
+};
+
 export const ToolCallRenderer = ({ message }: { message: ToolCall }) => {
 	const input = JSON.stringify(message.tool_input);
 	const output = JSON.stringify(message.tool_output);
@@ -53,7 +70,7 @@ export const ToolCallRenderer = ({ message }: { message: ToolCall }) => {
 				borderColor="white"
 				flexDirection="column"
 			>
-				<Text color="yellow" bold>
+				<Text color="white" bold>
 					Tool: {message.tool_name}
 				</Text>
 				<Text>
@@ -125,6 +142,8 @@ export const MessageRenderer = ({
 			return <UserMessageRenderer message={message as Message} />;
 		case 'assistant':
 			return <AssistantMessageRenerer message={message as Message} />;
+		case 'thought':
+			return <ThoughtMessageRenderer message={message as Message} />;
 		case 'command':
 			return <CommandMessageRenderer message={message as CommandMessage} />;
 		default:
