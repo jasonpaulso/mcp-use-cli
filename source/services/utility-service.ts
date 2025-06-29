@@ -82,7 +82,7 @@ Available slash commands:
 		const currentConfig = this.llmService.getCurrentConfig();
 		const apiKeyStatus = this.llmService.getApiKeyStatus();
 
-		let statusText = '🤖 Current Configuration:\n\n';
+		let statusText = 'Current Configuration:\n\n';
 
 		// API Keys status
 		statusText += '🔑 API Keys:\n';

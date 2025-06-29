@@ -1,38 +1,118 @@
-import {ChatOpenAI} from '@langchain/openai';
-import {ChatAnthropic} from '@langchain/anthropic';
-import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
-import {ChatMistralAI} from '@langchain/mistralai';
-import {SecureStorage, StoredConfig} from '../storage.js';
-import type {CommandResult} from '../types.js';
+import { ChatOpenAI, AzureChatOpenAI } from '@langchain/openai';
+import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatVertexAI } from '@langchain/google-vertexai';
+import { ChatMistralAI } from '@langchain/mistralai';
+import { ChatGroq } from '@langchain/groq';
+import { ChatCohere } from '@langchain/cohere';
+import { ChatFireworks } from '@langchain/community/chat_models/fireworks';
+import { ChatPerplexity } from '@langchain/community/chat_models/perplexity';
+import { ChatOllama } from '@langchain/ollama';
+import { ChatTogetherAI } from '@langchain/community/chat_models/togetherai';
+import { ChatDeepSeek } from '@langchain/deepseek';
+import { ChatXAI } from '@langchain/xai';
+import { SecureStorage, StoredConfig } from '../storage.js';
+import type { CommandResult } from '../types.js';
+
+export type ProviderKey = keyof typeof PROVIDERS;
 
 export interface LLMConfig {
-	provider: 'openai' | 'anthropic' | 'google' | 'mistral';
+	provider: ProviderKey;
 	model: string;
 	temperature?: number;
 	maxTokens?: number;
 }
 
+const PROVIDERS = {
+	openai: {
+		envVar: 'OPENAI_API_KEY',
+		defaultModel: 'gpt-4o',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatOpenAI({ openAIApiKey: key, modelName: cfg.model }),
+	},
+	azureopenai: {
+		envVar: 'AZURE_OPENAI_API_KEY',
+		defaultModel: 'gpt-4o',
+		factory: (key: string, cfg: LLMConfig) =>
+			new AzureChatOpenAI({ azureOpenAIApiKey: key, modelName: cfg.model }),
+	},
+	anthropic: {
+		envVar: 'ANTHROPIC_API_KEY',
+		defaultModel: 'claude-3-5-sonnet-20240620',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatAnthropic({ anthropicApiKey: key, modelName: cfg.model }),
+	},
+	gemini: {
+		envVar: 'GOOGLE_API_KEY',
+		defaultModel: 'gemini-1.5-pro',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatGoogleGenerativeAI({ apiKey: key, model: cfg.model }),
+	},
+	vertex: {
+		envVar: 'GOOGLE_APPLICATION_CREDENTIALS',
+		defaultModel: 'gemini-1.5-flash',
+		factory: (_key: string, cfg: LLMConfig) => new ChatVertexAI({ model: cfg.model }),
+	},
+	mistral: {
+		envVar: 'MISTRAL_API_KEY',
+		defaultModel: 'mistral-large-latest',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatMistralAI({ apiKey: key, modelName: cfg.model }),
+	},
+	groq: {
+		envVar: 'GROQ_API_KEY',
+		defaultModel: 'llama-3.1-70b-versatile',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatGroq({ apiKey: key, model: cfg.model }),
+	},
+	cohere: {
+		envVar: 'COHERE_API_KEY',
+		defaultModel: 'command-r-plus',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatCohere({ apiKey: key, model: cfg.model }),
+	},
+	fireworks: {
+		envVar: 'FIREWORKS_API_KEY',
+		defaultModel: 'accounts/fireworks/models/llama-v3p1-70b-instruct',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatFireworks({ apiKey: key, model: cfg.model }),
+	},
+	perplexity: {
+		envVar: 'PERPLEXITY_API_KEY',
+		defaultModel: 'pplx-70b-online',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatPerplexity({ apiKey: key, model: cfg.model }),
+	},
+	ollama: {
+		envVar: 'OLLAMA_HOST',
+		defaultModel: 'llama3',
+		factory: (_key: string, cfg: LLMConfig) =>
+			new ChatOllama({ baseUrl: process.env['OLLAMA_HOST'], model: cfg.model }),
+	},
+	together: {
+		envVar: 'TOGETHER_API_KEY',
+		defaultModel: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatTogetherAI({ apiKey: key, model: cfg.model }),
+	},
+	deepseek: {
+		envVar: 'DEEPSEEK_API_KEY',
+		defaultModel: 'deepseek-chat',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatDeepSeek({ apiKey: key, model: cfg.model }),
+	},
+	xai: {
+		envVar: 'XAI_API_KEY',
+		defaultModel: 'grok-1.5',
+		factory: (key: string, cfg: LLMConfig) =>
+			new ChatXAI({ apiKey: key, model: cfg.model }),
+	},
+} as const;
+
 export class LLMService {
 	private currentLLMConfig: LLMConfig | null = null;
 	private sessionApiKeys: Record<string, string> = {};
 	private persistentConfig: StoredConfig;
-
-	private availableModels = {
-		openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
-		anthropic: [
-			'claude-3-5-sonnet-20241022',
-			'claude-3-5-haiku-20241022',
-			'claude-3-opus-20240229',
-			'claude-3-sonnet-20240229',
-			'claude-3-haiku-20240307',
-		],
-		google: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
-		mistral: [
-			'mistral-large-latest',
-			'mistral-medium-latest',
-			'mistral-small-latest',
-		],
-	};
 
 	constructor() {
 		this.persistentConfig = SecureStorage.loadConfig();
@@ -40,69 +120,38 @@ export class LLMService {
 	}
 
 	private initializeDefaultProvider() {
-		// First, try to load the last used model from persistent config
 		if (this.persistentConfig.lastModel) {
-			const lastModel = this.persistentConfig.lastModel;
-			const envVar = {
-				openai: 'OPENAI_API_KEY',
-				anthropic: 'ANTHROPIC_API_KEY',
-				google: 'GOOGLE_API_KEY',
-				mistral: 'MISTRAL_API_KEY',
-			}[lastModel.provider];
-
-			// Check if we still have the API key for the last used model
-			if (envVar && this.getApiKey(envVar)) {
-				this.currentLLMConfig = {
-					provider: lastModel.provider as LLMConfig['provider'],
-					model: lastModel.model,
-					temperature: lastModel.temperature || 0.7,
-					maxTokens: lastModel.maxTokens,
-				};
-				return;
+			const lastModel = this.persistentConfig.lastModel as LLMConfig;
+			const providerInfo = PROVIDERS[lastModel.provider as ProviderKey];
+			if (providerInfo) {
+				const envVar = providerInfo.envVar;
+				if (envVar && this.getApiKey(envVar)) {
+					this.currentLLMConfig = {
+						provider: lastModel.provider,
+						model: lastModel.model,
+						temperature: lastModel.temperature ?? 0.7,
+						maxTokens: lastModel.maxTokens,
+					};
+					return;
+				}
 			}
 		}
 
-		const providers = [
-			{
-				name: 'openai' as const,
-				envVar: 'OPENAI_API_KEY',
-				defaultModel: 'gpt-4o-mini',
-			},
-			{
-				name: 'anthropic' as const,
-				envVar: 'ANTHROPIC_API_KEY',
-				defaultModel: 'claude-3-5-sonnet-20241022',
-			},
-			{
-				name: 'google' as const,
-				envVar: 'GOOGLE_API_KEY',
-				defaultModel: 'gemini-1.5-pro',
-			},
-			{
-				name: 'mistral' as const,
-				envVar: 'MISTRAL_API_KEY',
-				defaultModel: 'mistral-large-latest',
-			},
-		];
-
-		// Find first available provider
-		for (const provider of providers) {
-			if (this.getApiKey(provider.envVar)) {
+		for (const [providerName, providerInfo] of Object.entries(PROVIDERS)) {
+			if (this.getApiKey(providerInfo.envVar)) {
 				this.currentLLMConfig = {
-					provider: provider.name,
-					model: provider.defaultModel,
+					provider: providerName as ProviderKey,
+					model: providerInfo.defaultModel,
 					temperature: 0.7,
 				};
 				return;
 			}
 		}
 
-		// No provider found - leave null, will show setup message
 		this.currentLLMConfig = null;
 	}
 
 	private getApiKey(envVar: string): string | undefined {
-		// Check session keys first, then persistent storage, then environment variables
 		return (
 			this.sessionApiKeys[envVar] ||
 			this.persistentConfig.apiKeys[envVar] ||
@@ -111,12 +160,9 @@ export class LLMService {
 	}
 
 	getAvailableProviders(): string[] {
-		const providers = [];
-		if (this.getApiKey('OPENAI_API_KEY')) providers.push('openai');
-		if (this.getApiKey('ANTHROPIC_API_KEY')) providers.push('anthropic');
-		if (this.getApiKey('GOOGLE_API_KEY')) providers.push('google');
-		if (this.getApiKey('MISTRAL_API_KEY')) providers.push('mistral');
-		return providers;
+		return Object.entries(PROVIDERS)
+			.filter(([, providerInfo]) => this.getApiKey(providerInfo.envVar))
+			.map(([providerName]) => providerName);
 	}
 
 	isAnyProviderAvailable(): boolean {
@@ -124,19 +170,18 @@ export class LLMService {
 	}
 
 	getAvailableModels(provider?: string): Record<string, string[]> | string[] {
-		if (
-			provider &&
-			this.availableModels[provider as keyof typeof this.availableModels]
-		) {
-			return this.availableModels[
-				provider as keyof typeof this.availableModels
-			];
+		const models: Record<string, string[]> = {};
+		for (const [key, value] of Object.entries(PROVIDERS)) {
+			models[key] = [value.defaultModel];
 		}
-		return this.availableModels;
+		if (provider && models[provider]) {
+			return models[provider];
+		}
+		return models;
 	}
 
 	getCurrentConfig(): LLMConfig | null {
-		return this.currentLLMConfig ? {...this.currentLLMConfig} : null;
+		return this.currentLLMConfig ? { ...this.currentLLMConfig } : null;
 	}
 
 	setModel(
@@ -148,173 +193,98 @@ export class LLMService {
 		requiresApiKey?: boolean;
 		envVar?: string;
 	} {
-		if (!this.availableModels[provider as keyof typeof this.availableModels]) {
-			return {success: false, message: `Unknown provider: ${provider}`};
+		if (!Object.keys(PROVIDERS).includes(provider)) {
+			return { success: false, message: `Unknown provider: ${provider}` };
 		}
 
-		// Check if the provider's API key is available
 		const availableProviders = this.getAvailableProviders();
 		if (!availableProviders.includes(provider)) {
-			const envVarMap = {
-				openai: 'OPENAI_API_KEY',
-				anthropic: 'ANTHROPIC_API_KEY',
-				google: 'GOOGLE_API_KEY',
-				mistral: 'MISTRAL_API_KEY',
-			};
-
+			const providerInfo = PROVIDERS[provider as ProviderKey];
 			return {
 				success: false,
 				message: `API key not found for ${provider}`,
 				requiresApiKey: true,
-				envVar: envVarMap[provider as keyof typeof envVarMap],
-			};
-		}
-
-		const models =
-			this.availableModels[provider as keyof typeof this.availableModels];
-		if (!models.includes(model)) {
-			return {
-				success: false,
-				message: `Model ${model} not available for ${provider}`,
+				envVar: providerInfo.envVar,
 			};
 		}
 
 		this.currentLLMConfig = {
-			provider: provider as LLMConfig['provider'],
+			provider: provider as ProviderKey,
 			model,
 			temperature: this.currentLLMConfig?.temperature || 0.7,
 			maxTokens: this.currentLLMConfig?.maxTokens,
 		};
 
-		// Save the current model to persistent storage
 		this.persistentConfig.lastModel = this.currentLLMConfig;
 		SecureStorage.saveConfig(this.persistentConfig);
 
-		return {success: true, message: `Switched to ${provider} ${model}`};
+		return { success: true, message: `Switched to ${provider} ${model}` };
 	}
 
-	setTemperature(temperature: number): {success: boolean; message: string} {
+	setTemperature(temperature: number): { success: boolean; message: string } {
 		if (!this.currentLLMConfig) {
-			return {success: false, message: 'No model configured'};
+			return { success: false, message: 'No model configured' };
 		}
-
 		if (temperature < 0 || temperature > 2) {
 			return {
 				success: false,
 				message: 'Temperature must be between 0.0 and 2.0',
 			};
 		}
-
 		this.currentLLMConfig.temperature = temperature;
-		return {success: true, message: `Temperature set to ${temperature}`};
+		return { success: true, message: `Temperature set to ${temperature}` };
 	}
 
-	setMaxTokens(maxTokens: number): {success: boolean; message: string} {
+	setMaxTokens(maxTokens: number): { success: boolean; message: string } {
 		if (!this.currentLLMConfig) {
-			return {success: false, message: 'No model configured'};
+			return { success: false, message: 'No model configured' };
 		}
-
 		if (maxTokens < 1) {
-			return {success: false, message: 'Max tokens must be a positive integer'};
+			return { success: false, message: 'Max tokens must be a positive integer' };
 		}
-
 		this.currentLLMConfig.maxTokens = maxTokens;
-		return {success: true, message: `Max tokens set to ${maxTokens}`};
+		return { success: true, message: `Max tokens set to ${maxTokens}` };
 	}
 
 	validateApiKey(
-		provider: string,
+		_provider: string,
 		apiKey: string,
-	): {valid: boolean; message: string} {
+	): { valid: boolean; message: string } {
 		if (!apiKey || apiKey.trim().length === 0) {
-			return {valid: false, message: 'API key cannot be empty'};
+			return { valid: false, message: 'API key cannot be empty' };
 		}
-
-		// Basic format validation for each provider
-		switch (provider) {
-			case 'openai':
-				if (!apiKey.startsWith('sk-') || apiKey.length < 20) {
-					return {
-						valid: false,
-						message:
-							'OpenAI API keys should start with "sk-" and be at least 20 characters long',
-					};
-				}
-				break;
-			case 'anthropic':
-				if (
-					(!apiKey.startsWith('ant_') && !apiKey.startsWith('sk-ant-')) ||
-					apiKey.length < 20
-				) {
-					return {
-						valid: false,
-						message:
-							'Anthropic API keys should start with "ant_" or "sk-ant-" and be at least 20 characters long',
-					};
-				}
-				break;
-			case 'google':
-				if (apiKey.length < 20) {
-					return {
-						valid: false,
-						message: 'Google API keys should be at least 20 characters long',
-					};
-				}
-				break;
-			case 'mistral':
-				if (apiKey.length < 20) {
-					return {
-						valid: false,
-						message: 'Mistral API keys should be at least 20 characters long',
-					};
-				}
-				break;
-		}
-
-		return {valid: true, message: ''};
+		// Basic validation can be improved per provider if needed
+		return { valid: true, message: '' };
 	}
 
 	setApiKey(
 		provider: string,
 		apiKey: string,
-		shouldAutoSelect: boolean = false,
-	): {success: boolean; message: string; autoSelected?: LLMConfig} {
+		shouldAutoSelect = false,
+	): { success: boolean; message: string; autoSelected?: LLMConfig } {
 		const validationResult = this.validateApiKey(provider, apiKey);
 		if (!validationResult.valid) {
-			return {success: false, message: validationResult.message};
+			return { success: false, message: validationResult.message };
 		}
 
-		// Map provider to environment variable name
-		const envVarMap = {
-			openai: 'OPENAI_API_KEY',
-			anthropic: 'ANTHROPIC_API_KEY',
-			google: 'GOOGLE_API_KEY',
-			mistral: 'MISTRAL_API_KEY',
-		};
+		const providerInfo = PROVIDERS[provider as ProviderKey];
+		if (!providerInfo) {
+			return { success: false, message: `Invalid provider: ${provider}` };
+		}
+		const envVar = providerInfo.envVar;
 
-		const envVar = envVarMap[provider as keyof typeof envVarMap];
-
-		// Store the API key in persistent storage
 		this.persistentConfig.apiKeys[envVar] = apiKey;
 		SecureStorage.saveConfig(this.persistentConfig);
 
 		let autoSelected: LLMConfig | undefined;
 		if (shouldAutoSelect && !this.currentLLMConfig) {
-			const defaultModels = {
-				openai: 'gpt-4o-mini',
-				anthropic: 'claude-3-5-sonnet-20241022',
-				google: 'gemini-1.5-pro',
-				mistral: 'mistral-large-latest',
-			};
-
 			this.currentLLMConfig = {
-				provider: provider as any,
-				model: defaultModels[provider as keyof typeof defaultModels],
+				provider: provider as ProviderKey,
+				model: providerInfo.defaultModel,
 				temperature: 0.7,
 			};
 			autoSelected = this.currentLLMConfig;
 		}
-
 		return {
 			success: true,
 			message: `${provider} API key set`,
@@ -342,57 +312,47 @@ export class LLMService {
 
 	getApiKeyStatus(): Record<
 		string,
-		{status: string; source: string; masked: string}
+		{ status: string; source: string; masked: string }
 	> {
 		const status: Record<
 			string,
-			{status: string; source: string; masked: string}
+			{ status: string; source: string; masked: string }
 		> = {};
-		const providers = ['openai', 'anthropic', 'google', 'mistral'] as const;
-
-		providers.forEach(provider => {
-			const envVarMap = {
-				openai: 'OPENAI_API_KEY',
-				anthropic: 'ANTHROPIC_API_KEY',
-				google: 'GOOGLE_API_KEY',
-				mistral: 'MISTRAL_API_KEY',
-			} as const;
-
-			const envVar = envVarMap[provider];
+		for (const [providerName, providerInfo] of Object.entries(PROVIDERS)) {
+			const envVar = providerInfo.envVar;
 			const hasEnvKey = !!process.env[envVar];
 			const hasSessionKey = !!this.sessionApiKeys[envVar];
 			const hasPersistentKey = !!this.persistentConfig.apiKeys[envVar];
 
 			if (hasSessionKey) {
 				const key = this.sessionApiKeys[envVar]!;
-				status[provider] = {
+				status[providerName] = {
 					status: 'set',
 					source: 'session',
 					masked: this.maskApiKey(key),
 				};
 			} else if (hasPersistentKey) {
 				const key = this.persistentConfig.apiKeys[envVar]!;
-				status[provider] = {
+				status[providerName] = {
 					status: 'set',
 					source: 'stored',
 					masked: this.maskApiKey(key),
 				};
 			} else if (hasEnvKey) {
 				const key = process.env[envVar]!;
-				status[provider] = {
+				status[providerName] = {
 					status: 'set',
 					source: 'env',
 					masked: this.maskApiKey(key),
 				};
 			} else {
-				status[provider] = {
+				status[providerName] = {
 					status: 'not set',
 					source: 'none',
 					masked: '',
 				};
 			}
-		});
-
+		}
 		return status;
 	}
 
@@ -402,69 +362,21 @@ export class LLMService {
 				'No LLM configured. Use /model command to select a provider and model.',
 			);
 		}
-
 		const config = this.currentLLMConfig;
-		const baseConfig = {
-			temperature: config.temperature || 0.7,
-			maxTokens: config.maxTokens,
-		};
-
-		switch (config.provider) {
-			case 'openai':
-				const openaiKey = this.getApiKey('OPENAI_API_KEY');
-				if (!openaiKey) {
-					throw new Error(
-						'OPENAI_API_KEY is required for OpenAI models. Use /setkey openai <your-key>',
-					);
-				}
-				return new ChatOpenAI({
-					modelName: config.model,
-					openAIApiKey: openaiKey,
-					...baseConfig,
-				});
-
-			case 'anthropic':
-				const anthropicKey = this.getApiKey('ANTHROPIC_API_KEY');
-				if (!anthropicKey) {
-					throw new Error(
-						'ANTHROPIC_API_KEY is required for Anthropic models. Use /setkey anthropic <your-key>',
-					);
-				}
-				return new ChatAnthropic({
-					modelName: config.model,
-					anthropicApiKey: anthropicKey,
-					...baseConfig,
-				}) as any;
-
-			case 'google':
-				const googleKey = this.getApiKey('GOOGLE_API_KEY');
-				if (!googleKey) {
-					throw new Error(
-						'GOOGLE_API_KEY is required for Google models. Use /setkey google <your-key>',
-					);
-				}
-				return new ChatGoogleGenerativeAI({
-					model: config.model,
-					apiKey: googleKey,
-					...baseConfig,
-				}) as any;
-
-			case 'mistral':
-				const mistralKey = this.getApiKey('MISTRAL_API_KEY');
-				if (!mistralKey) {
-					throw new Error(
-						'MISTRAL_API_KEY is required for Mistral models. Use /setkey mistral <your-key>',
-					);
-				}
-				return new ChatMistralAI({
-					modelName: config.model,
-					apiKey: mistralKey,
-					...baseConfig,
-				}) as any;
-
-			default:
-				throw new Error(`Unsupported provider: ${config.provider}`);
+		const providerInfo = PROVIDERS[config.provider];
+		if (!providerInfo) {
+			throw new Error(`Unsupported provider: ${config.provider}`);
 		}
+		const apiKey = this.getApiKey(providerInfo.envVar);
+		if (!apiKey && providerInfo.envVar !== 'OLLAMA_HOST') {
+			throw new Error(
+				`${providerInfo.envVar} is required for ${config.provider} models. Use /setkey ${config.provider} <your-key>`,
+			);
+		}
+		const llm = providerInfo.factory(apiKey!, config);
+		(llm as any).temperature = config.temperature ?? 0.7;
+		(llm as any).maxTokens = config.maxTokens;
+		return llm;
 	}
 
 	/**
@@ -473,21 +385,23 @@ export class LLMService {
 	 * @returns A CommandResult with success/error status and prompts for API key if needed
 	 */
 	handleModelCommand(args: string[]): CommandResult {
+		if (args.length === 0) {
+			return {
+				type: 'info',
+				message:
+					'Usage: /model <provider> <model>\n\nUse /models to see all available options.',
+			};
+		}
 		if (args.length < 2) {
-			const availableProviders = this.getAvailableProviders();
-			if (availableProviders.length === 0) {
+			const provider = args[0];
+			const providerInfo = PROVIDERS[provider as ProviderKey];
+			if (!providerInfo) {
 				return {
-					type: 'info',
-					message:
-						'Usage: /model <provider> <model>\n\nPopular models to try:\n• /model openai gpt-4o-mini\n• /model anthropic claude-3-5-sonnet-20241022\n• /model google gemini-1.5-pro\n\nThe CLI will prompt for your API key when needed.\nUse /models to see all available options.',
+					type: 'error',
+					message: `Unknown provider: ${provider}. Use /models to see available providers.`,
 				};
 			}
-			return {
-				type: 'error',
-				message: `Usage: /model <provider> <model>\nExample: /model openai gpt-4o\n\nAvailable providers: ${availableProviders.join(
-					', ',
-				)}`,
-			};
+			args.push(providerInfo.defaultModel);
 		}
 
 		const provider = args[0];
@@ -500,25 +414,19 @@ export class LLMService {
 			};
 		}
 
-		const availableModels = this.getAvailableModels() as Record<
-			string,
-			string[]
-		>;
-		if (!availableModels[provider]) {
+		if (!Object.keys(PROVIDERS).includes(provider)) {
 			return {
 				type: 'error',
 				message: `Unknown provider: ${provider}\nAvailable providers: ${Object.keys(
-					availableModels,
+					PROVIDERS,
 				).join(', ')}`,
 			};
 		}
 
-		// Try to set the model
 		const result = this.setModel(provider, model);
 
 		if (!result.success) {
 			if (result.requiresApiKey) {
-				// Prompt for API key instead of showing error
 				return {
 					type: 'prompt_key',
 					message: `Please enter your ${provider.toUpperCase()} API key:`,
@@ -538,7 +446,7 @@ export class LLMService {
 		return {
 			type: 'success',
 			message: `✅ ${result.message}`,
-			data: {llmConfig: this.getCurrentConfig()},
+			data: { llmConfig: this.getCurrentConfig() },
 		};
 	}
 
@@ -547,68 +455,23 @@ export class LLMService {
 	 * @param args - Optional array with provider name to filter models
 	 * @returns A CommandResult with the list of available models
 	 */
-	handleListModelsCommand(args: string[]): CommandResult {
+	handleListModelsCommand(_args: string[]): CommandResult {
 		const currentConfig = this.getCurrentConfig();
 
-		if (args.length === 0) {
-			let modelList = '📋 Available models by provider:\n\n';
-			const availableModels = this.getAvailableModels() as Record<
-				string,
-				string[]
-			>;
+		let modelList = '📋 Available models by provider:\n\n';
 
-			Object.entries(availableModels).forEach(([provider, models]) => {
-				modelList += `🔸 ${provider}:\n`;
-				models.forEach(model => {
-					const current =
-						provider === currentConfig?.provider &&
-						model === currentConfig?.model
-							? ' ← current'
-							: '';
-					modelList += `   • ${model}${current}\n`;
-				});
-				modelList += '\n';
-			});
-
-			return {
-				type: 'info',
-				message: modelList.trim(),
-			};
-		}
-
-		const provider = args[0];
-		if (!provider) {
-			return {
-				type: 'error',
-				message: 'Provider is required',
-			};
-		}
-
-		const availableModels = this.getAvailableModels() as Record<
-			string,
-			string[]
-		>;
-
-		if (!availableModels[provider]) {
-			return {
-				type: 'error',
-				message: `Unknown provider: ${provider}\nAvailable providers: ${Object.keys(
-					availableModels,
-				).join(', ')}`,
-			};
-		}
-
-		let modelList = `📋 Available ${provider} models:\n\n`;
-		const models = this.getAvailableModels(provider) as string[];
-		models.forEach(model => {
+		for (const [provider, info] of Object.entries(PROVIDERS)) {
 			const current =
-				provider === currentConfig?.provider && model === currentConfig?.model
-					? ' ← current'
-					: '';
-			modelList += `• ${model}${current}\n`;
-		});
+				provider === currentConfig?.provider ? ' ← current provider' : '';
+			modelList += `🔸 ${provider}${current}:\n`;
+			const model = info.defaultModel;
+			const currentModel =
+				current && model === currentConfig?.model ? ' ← current model' : '';
+			modelList += `   • ${model} (default)${currentModel}\n`;
+			modelList += '\n';
+		}
 
-		modelList += `\n Don't see your model/provider? Submit a PR to add it at https://github.com/mcp-use/mcp-use-cli/`;
+		modelList += `\nNote: This list shows default models. Most providers support many more models that can be used with the /model command.\nDon't see your model/provider? Submit a PR to add it at https://github.com/mcp-use/mcp-use-cli/`;
 
 		return {
 			type: 'info',
@@ -668,7 +531,7 @@ export class LLMService {
 				return {
 					type: 'success',
 					message: `✅ ${tempResult.message}`,
-					data: {llmConfig: this.getCurrentConfig()},
+					data: { llmConfig: this.getCurrentConfig() },
 				};
 
 			case 'tokens':
@@ -690,7 +553,7 @@ export class LLMService {
 				return {
 					type: 'success',
 					message: `✅ ${tokensResult.message}`,
-					data: {llmConfig: this.getCurrentConfig()},
+					data: { llmConfig: this.getCurrentConfig() },
 				};
 
 			default:
@@ -725,8 +588,7 @@ export class LLMService {
 			};
 		}
 
-		// Validate provider
-		const validProviders = ['openai', 'anthropic', 'google', 'mistral'];
+		const validProviders = Object.keys(PROVIDERS);
 		if (!validProviders.includes(provider)) {
 			return {
 				type: 'error',
@@ -736,10 +598,8 @@ export class LLMService {
 			};
 		}
 
-		// Check if we should auto-select this provider
 		const shouldAutoSelect = !this.getCurrentConfig();
 
-		// Set the API key
 		const result = this.setApiKey(provider, apiKey, shouldAutoSelect);
 
 		if (!result.success) {
@@ -753,13 +613,13 @@ export class LLMService {
 		let message = `✅ ${provider} API key set (${maskedKey})`;
 
 		if (result.autoSelected) {
-			message += `\n🤖 Auto-selected ${result.autoSelected.provider}/${result.autoSelected.model}`;
+			message += `\nAuto-selected ${result.autoSelected.provider}/${result.autoSelected.model}`;
 		}
 
 		return {
 			type: 'success',
 			message,
-			data: result.autoSelected ? {llmConfig: result.autoSelected} : undefined,
+			data: result.autoSelected ? { llmConfig: result.autoSelected } : undefined,
 		};
 	}
 
@@ -774,7 +634,7 @@ export class LLMService {
 			type: 'success',
 			message:
 				'✅ All API keys cleared from storage.\n\nUse /setkey or /model to set up a new provider.',
-			data: {llmConfig: null},
+			data: { llmConfig: null },
 		};
 	}
 
@@ -790,7 +650,6 @@ export class LLMService {
 		provider: string,
 		model: string,
 	): CommandResult {
-		// Set the API key
 		const keyResult = this.setApiKey(provider, apiKey, false);
 		if (!keyResult.success) {
 			return {
@@ -799,7 +658,6 @@ export class LLMService {
 			};
 		}
 
-		// Now set the model
 		const modelResult = this.setModel(provider, model);
 		if (!modelResult.success) {
 			return {
@@ -811,8 +669,8 @@ export class LLMService {
 		const maskedKey = this.maskApiKey(apiKey);
 		return {
 			type: 'success',
-			message: `✅ ${provider} API key set (${maskedKey})\n🤖 Switched to ${provider}/${model}`,
-			data: {llmConfig: this.getCurrentConfig()},
+			message: `✅ ${provider} API key set (${maskedKey})\n Switched to ${provider}/${model}`,
+			data: { llmConfig: this.getCurrentConfig() },
 		};
 	}
 }

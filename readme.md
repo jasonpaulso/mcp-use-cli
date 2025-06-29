@@ -2,16 +2,15 @@
   <img src="static/terminal.png" alt="Terminal" />
 </div>
 
-A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language. Built with [mcp-use](https://github.com/mcp-use/mcp-use-ts) and powered by OpenAI's GPT models.
+A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language. Built with [mcp-use](https://github.com/mcp-use/mcp-use-ts).
 
 ## Features
 
 - 🤖 Natural language interface for MCP servers
-- 🔧 Built-in filesystem MCP server support
 - 💬 Interactive chat interface with tool call visualization
 - ⚡ Direct integration with mcp-use (no API layer needed)
 - 🚀 Single command installation
-- 🔄 **Multiple LLM providers** (OpenAI, Anthropic, Google, Mistral)
+- 🔄 **Over a dozen LLM providers** (OpenAI, Anthropic, Google, Mistral, Groq, Cohere, and more)
 - ⚙️ **Slash commands** for configuration (like Claude Code)
 - 🔑 **Smart API key prompting** - automatically asks for keys when needed
 - 💾 **Persistent secure storage** - encrypted keys and settings saved across sessions
@@ -28,26 +27,30 @@ $ npm install --global @mcp-use/cli
 
    ```bash
    $ npm install --global @mcp-use/cli
-   $ mcp-use-cli
+   $ mcp-use
    ```
 
 2. **Choose your model** (CLI handles API key setup automatically):
 
    ```bash
    # Just pick a model - that's it!
-   /model openai gpt-4o-mini
-   /model anthropic claude-3-5-sonnet-20241022
+   /model openai gpt-4o
+   /model anthropic claude-3-5-sonnet-20240620
    /model google gemini-1.5-pro
+   /model groq llama-3.1-70b-versatile
+   /model ollama llama3
 
    # CLI will prompt: "Please enter your OPENAI API key:"
    # Paste your key and start chatting immediately!
    ```
 
-3. **Get API keys** when prompted from:
+3. **Get API keys** when prompted from providers like:
    - [OpenAI](https://platform.openai.com/api-keys)
    - [Anthropic](https://console.anthropic.com/)
    - [Google AI](https://aistudio.google.com/app/apikey)
    - [Mistral](https://console.mistral.ai/)
+   - [Groq](https://console.groq.com/keys)
+   - [Cohere](https://dashboard.cohere.com/api-keys)
 
 > **Keys are stored securely encrypted** in `~/.mcp-use-cli/config.json` and persist across sessions.
 
@@ -58,63 +61,75 @@ If you prefer environment variables:
 ```bash
 export OPENAI_API_KEY=your_key_here
 export ANTHROPIC_API_KEY=your_key_here
-# Then just run: mcp-use-cli
+# Then just run: mcp-use
 ```
 
 ## Usage
 
 ```
-$ mcp-use-cli --help
+$ mcp-use --help
 
   Usage
-    $ mcp-use-cli
+    $ mcp-use
 
   Options
     --name        Your name (optional)
     --config      Path to MCP configuration file (optional)
 
   Examples
-    $ mcp-use-cli
-    $ mcp-use-cli --name=Jane
-    $ mcp-use-cli --config=./mcp-config.json
+    $ mcp-use
+    $ mcp-use --name=Jane
 
   Environment Variables
-    OPENAI_API_KEY    Required - Your OpenAI API key
+    <PROVIDER>_API_KEY    Set API keys (e.g., OPENAI_API_KEY, ANTHROPIC_API_KEY)
 
   Setup
-    1. Set your OpenAI API key: export OPENAI_API_KEY=your_key_here
-    2. Run: mcp-use-cli
-    3. Start chatting with MCP servers!
+    1. Run: mcp-use
+    2. Use /model or /setkey to configure an LLM.
+    3. Use /server commands to connect to your tools.
+    4. Start chatting!
 ```
 
-## Configuration
+## Connecting to Tools (MCP Servers)
 
-By default, the CLI connects to a filesystem MCP server in `/tmp`. You can provide a custom configuration file:
+This CLI is a client for [Model Context Protocol (MCP)](https://github.com/mcp-use/mcp-spec) servers. MCP servers act as tools that the AI can use. You need to connect the CLI to one or more servers to give it capabilities.
+
+You can manage servers with the `/server` commands:
+
+```bash
+# Interactively add a new server configuration
+/server add
+
+# List configured servers
+/servers
+
+# Connect to a configured server
+/server connect <server-name>
+
+# Disconnect from a server
+/server disconnect <server-name>
+```
+
+When you add a server, you'll be prompted for its configuration details, such as the command to run it. Here is an example of what a server configuration for a filesystem tool looks like:
 
 ```json
 {
-	"servers": {
-		"filesystem": {
-			"command": "npx",
-			"args": [
-				"-y",
-				"@modelcontextprotocol/server-filesystem",
-				"/path/to/directory"
-			],
-			"env": {}
-		},
-		"other-server": {
-			"command": "your-mcp-server-command",
-			"args": ["--arg1", "value1"],
-			"env": {}
-		}
+	"filesystem-tool": {
+		"command": "npx",
+		"args": [
+			"-y",
+			"@modelcontextprotocol/server-filesystem",
+			"/path/to/your/project"
+		],
+		"env": {}
 	}
 }
 ```
+This configuration would be created interactively by running `/server add` and answering the prompts.
 
 ## Slash Commands
 
-Switch LLM providers and configure settings using slash commands (similar to Claude Code):
+Switch LLM providers and configure settings using slash commands:
 
 ```bash
 # Set API keys (stored securely)
@@ -124,13 +139,19 @@ Switch LLM providers and configure settings using slash commands (similar to Cla
 
 # Switch models
 /model openai gpt-4o
-/model anthropic claude-3-5-sonnet-20241022
+/model anthropic claude-3-5-sonnet-20240620
 /model google gemini-1.5-pro
 /model mistral mistral-large-latest
+/model groq llama-3.1-70b-versatile
 
 # List available models
 /models
-/models anthropic
+
+# Server Management
+/server add
+/servers
+/server connect <name>
+/server disconnect <name>
 
 # Configuration
 /config temp 0.5
@@ -154,7 +175,7 @@ This CLI uses:
 
 - **Frontend**: React + Ink for the terminal UI
 - **Agent**: mcp-use MCPAgent for LLM + MCP integration
-- **LLM**: OpenAI GPT-4o-mini
+- **LLM**: Your choice of 12+ providers
 - **Transport**: Direct TypeScript integration (no API layer)
 
 ## License
