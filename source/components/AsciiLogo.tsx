@@ -1,11 +1,30 @@
-import React from 'react';
-import {Text} from 'ink';
-import BigText from 'ink-big-text';
+import {Box, Text} from 'ink';
+import Gradient from 'ink-gradient';
+export const AsciiLogoContent = `
+███╗   ███╗  ██████╗ ██████╗      ██╗   ██╗ ███████╗ ███████╗      ██████╗ ██╗      ██╗
+████╗ ████║ ██╔════╝ ██╔══██╗     ██║   ██║ ██╔════╝ ██╔════╝     ██╔════╝ ██║      ██║
+██╔████╔██║ ██║      ██████╔╝     ██║   ██║ ███████╗ █████╗       ██║      ██║      ██║
+██║╚██╔╝██║ ██║      ██╔═══╝      ██║   ██║ ╚════██║ ██╔══╝       ██║      ██║      ██║
+██║ ╚═╝ ██║ ╚██████╗ ██║          ╚██████╔╝ ███████║ ███████╗     ╚██████╗ ███████╗ ██║
+╚═╝     ╚═╝  ╚═════╝ ╚═╝           ╚═════╝  ╚══════╝ ╚══════╝      ╚═════╝ ╚══════╝ ╚═╝
+Vice CLI
+  `;
 
-export default function AsciiLogo() {
+
+export const AsciiLogo: React.FC = () => {
+	let displayTitle;
+
+	displayTitle = AsciiLogoContent;
+
 	return (
-		<Text>
-			<BigText colors={['white']} text="mcp use cli" />
-		</Text>
+		<Box
+			marginBottom={1}
+			alignItems="flex-start"
+			flexShrink={0}
+		>
+			<Gradient name="vice" >
+					<Text>{displayTitle}</Text>
+				</Gradient>
+		</Box>
 	);
-}
+};
