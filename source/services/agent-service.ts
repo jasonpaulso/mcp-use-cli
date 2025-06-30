@@ -1,10 +1,13 @@
-import {MCPAgent, MCPClient} from 'mcp-use';
+import {MCPAgent, MCPClient, setTelemetrySource} from 'mcp-use';
 import {Logger} from '../logger.js';
 import type {Tool} from '@modelcontextprotocol/sdk/types.js';
 import type {ToolCall, CommandResult} from '../types.js';
 import {LLMService} from './llm-service.js';
 import type {AgentStep} from '@langchain/core/agents';
 import type {MCPServerConfig} from './mcp-config-service.js';
+
+// Set telemetry source to identify CLI usage
+setTelemetrySource('CLI');
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
