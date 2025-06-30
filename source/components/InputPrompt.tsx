@@ -1,5 +1,5 @@
-import React, {useState, useEffect, useCallback, useRef} from 'react';
-import {Box, Text, useInput} from 'ink';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Box, Text, useInput } from 'ink';
 
 interface InputPromptProps {
 	value: string;
@@ -31,11 +31,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 	// Track if we should allow multiline
 	useEffect(() => {
 		setIsMultiline(value.includes('\n'));
-	}, [value]);
-
-	// Update cursor position when value changes externally
-	useEffect(() => {
-		setCursorPosition(value.length);
 	}, [value]);
 
 	const handleSubmit = useCallback(() => {
@@ -127,10 +122,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 		if (!isMultiline) {
 			if (key.upArrow && onHistoryUp) {
 				onHistoryUp();
+				setCursorPosition(value.length);
 				return;
 			}
 			if (key.downArrow && onHistoryDown) {
 				onHistoryDown();
+				setCursorPosition(value.length);
 				return;
 			}
 		}
