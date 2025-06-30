@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Text, useInput } from 'ink';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
+import {Box, Text, useInput} from 'ink';
 
 interface InputPromptProps {
 	value: string;
