@@ -1,4 +1,9 @@
-import {MCPAgent, MCPClient, setTelemetrySource} from 'mcp-use';
+import {
+	MCPAgent,
+	MCPClient,
+	setTelemetrySource,
+	Logger as MCPLogger,
+} from 'mcp-use';
 import {Logger} from '../logger.js';
 import type {Tool} from '@modelcontextprotocol/sdk/types.js';
 import type {ToolCall, CommandResult} from '../types.js';
@@ -8,6 +13,9 @@ import type {MCPServerConfig} from './mcp-config-service.js';
 
 // Set telemetry source to identify CLI usage
 setTelemetrySource('CLI');
+
+// Disable debug logging from mcp-use package
+MCPLogger.setDebug(0);
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
@@ -85,8 +93,6 @@ export class AgentService {
 	}
 
 	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
-		Logger.debug('Getting available tools - starting check');
-
 		if (!this.client) {
 			const error = 'No agent/client initialized';
 			Logger.warn('Tools check failed - no client', {error});
@@ -202,39 +208,39 @@ export class AgentService {
 		serverName: string,
 		serverConfig: MCPServerConfig,
 	): Promise<void> {
-		if (!this.agent || !this.client) {
+		if (!this.client) {
 			throw new Error('Agent not initialized');
 		}
 
 		if (this.isServerConnected(serverName)) {
 			throw new Error(`Server "${serverName}" is already connected`);
 		}
-		Logger.info('Connecting to server', serverName);
+
+		const llm = this.llmService.createLLM();
+		if (!llm) {
+			throw new Error('LLM not available, cannot connect server.');
+		}
+
 		const currentConfig = this.client.getConfig();
 		const newConfig = {
 			mcpServers: {
-				...currentConfig['mcpServers'],
+				...(currentConfig['mcpServers'] || {}),
 				[serverName]: serverConfig,
 			},
 		};
-		this.client = new MCPClient(newConfig);
 
+		this.client = new MCPClient(newConfig);
 		this.agent = new MCPAgent({
-			llm: this.llmService.createLLM(),
+			llm,
 			client: this.client,
 			maxSteps: 30,
-			memoryEnabled: true, // Enable built-in conversation memory
+			memoryEnabled: true,
 		});
-		await this.agent?.initialize();
+		await this.agent.initialize();
 	}
 
-	/**
-	 * Disconnects an MCP server without reinitializing the entire agent.
-	 * @param serverName - Name of the server to disconnect
-	 * @returns Promise that resolves when disconnected
-	 */
 	async disconnectServer(serverName: string): Promise<void> {
-		if (!this.agent || !this.client) {
+		if (!this.client) {
 			throw new Error('Agent not initialized');
 		}
 
@@ -242,23 +248,22 @@ export class AgentService {
 			throw new Error(`Server "${serverName}" is not connected`);
 		}
 
-		Logger.info('Disconnecting from server', serverName);
+		const llm = this.llmService.createLLM();
+		if (!llm) {
+			throw new Error('LLM not available, cannot disconnect server.');
+		}
+
 		const currentConfig = this.client.getConfig();
 		const mcpServers = {...currentConfig['mcpServers']};
 		delete mcpServers[serverName];
 
-		const newConfig = {
-			mcpServers,
-		};
-
-		this.client = new MCPClient(newConfig);
-
+		this.client = new MCPClient({mcpServers});
 		this.agent = new MCPAgent({
-			llm: this.llmService.createLLM(),
+			llm,
 			client: this.client,
 			maxSteps: 30,
-			memoryEnabled: true, // Enable built-in conversation memory
+			memoryEnabled: true,
 		});
-		await this.agent?.initialize();
+		await this.agent.initialize();
 	}
 }

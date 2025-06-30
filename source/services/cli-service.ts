@@ -35,7 +35,7 @@ export interface CommandRegistryEntry {
 
 export class CLIService {
 	private isInitialized = false;
-	private agentService: AgentService;
+	private agentService: AgentService | null = null;
 	private llmService: LLMService;
 	private mcpConfigService: MCPConfigService;
 	private utilityService: UtilityService;
@@ -49,13 +49,16 @@ export class CLIService {
 		// Initialize services
 		this.llmService = new LLMService();
 		this.mcpConfigService = new MCPConfigService();
-		this.agentService = new AgentService({
-			llmService: this.llmService,
-		});
 		this.utilityService = new UtilityService({
 			llmService: this.llmService,
 			mcpConfigService: this.mcpConfigService,
 		});
+
+		if (this.llmService.getCurrentConfig()) {
+			this.agentService = new AgentService({
+				llmService: this.llmService,
+			});
+		}
 
 		// Initialize command registry
 		this.commandRegistry = new Map();
@@ -112,14 +115,17 @@ export class CLIService {
 				const configured = Object.keys(
 					this.mcpConfigService.getConfiguredServers(),
 				);
-				const connected = this.agentService.getConnectedServerNames();
+				const connected = this.agentService
+					? this.agentService.getConnectedServerNames()
+					: [];
 				return configured.filter(s => !connected.includes(s));
 			},
 		});
 		this.commandRegistry.set('/server disconnect', {
 			handler: async args => this.handleServerDisconnectCommand(args),
 			description: 'Disconnect from a server',
-			getSuggestions: async () => this.agentService.getConnectedServerNames(),
+			getSuggestions: async () =>
+				this.agentService ? this.agentService.getConnectedServerNames() : [],
 		});
 		this.commandRegistry.set('/servers', {
 			handler: () => this.handleListServersCommand(),
@@ -130,7 +136,13 @@ export class CLIService {
 			description: 'Test server configuration',
 		});
 		this.commandRegistry.set('/tools', {
-			handler: () => this.agentService.handleListToolsCommand(),
+			handler: () =>
+				this.agentService
+					? this.agentService.handleListToolsCommand()
+					: {
+							type: 'info',
+							message: 'Agent not initialized. Set a model first.',
+						},
 			description: 'Show available MCP tools',
 		});
 
@@ -176,6 +188,9 @@ export class CLIService {
 	 */
 	public async initializeAgent() {
 		try {
+			if (!this.agentService) {
+				this.agentService = new AgentService({llmService: this.llmService});
+			}
 			await this.agentService.reinitializeAgent();
 			Logger.info('Agent service initialized successfully.');
 		} catch (error) {
@@ -190,7 +205,11 @@ export class CLIService {
 	 * (e.g., model or servers) has changed.
 	 */
 	async refreshAgent() {
-		await this.initializeAgent();
+		if (this.agentService) {
+			await this.agentService.reinitializeAgent();
+		} else {
+			await this.initializeAgent();
+		}
 	}
 
 	/**
@@ -334,7 +353,9 @@ export class CLIService {
 					'checkTools' in commandResult.data &&
 					commandResult.data.checkTools
 				) {
-					const toolsResult = await this.agentService.getAvailableTools();
+					const toolsResult = (await this.agentService)
+						? this.agentService.getAvailableTools()
+						: {tools: [], error: 'Agent not initialized'};
 
 					yield {
 						response: 'Available MCP Tools',
@@ -384,7 +405,7 @@ export class CLIService {
 			}
 		}
 
-		if (!this.agentService.isReady()) {
+		if (!this.agentService || !this.agentService.isReady()) {
 			const availableProviders = this.llmService.getAvailableProviders();
 			if (availableProviders.length === 0) {
 				yield {
@@ -410,6 +431,9 @@ export class CLIService {
 
 		// Handle agent messages (streaming)
 		try {
+			if (!this.agentService) {
+				throw new Error('Agent service is not available.');
+			}
 			const generator = this.agentService.sendMessage(message);
 
 			for await (const chunk of generator) {
@@ -492,7 +516,7 @@ export class CLIService {
 	 * @returns An array of connected server names.
 	 */
 	getConnectedServers(): string[] {
-		return this.agentService.getConnectedServerNames();
+		return this.agentService ? this.agentService.getConnectedServerNames() : [];
 	}
 
 	/**
@@ -500,6 +524,9 @@ export class CLIService {
 	 * @returns A promise that resolves to an object containing the tools or an error.
 	 */
 	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
+		if (!this.agentService) {
+			return {tools: [], error: 'Agent not initialized'};
+		}
 		return this.agentService.getAvailableTools();
 	}
 
@@ -509,7 +536,9 @@ export class CLIService {
 	 */
 	private handleListServersCommand(): CommandResult {
 		const configuredServers = this.mcpConfigService.getAllServers();
-		const connectedServerNames = this.agentService.getConnectedServerNames();
+		const connectedServerNames = this.agentService
+			? this.agentService.getConnectedServerNames()
+			: [];
 
 		if (configuredServers.length === 0) {
 			return {
@@ -613,7 +642,7 @@ export class CLIService {
 		}
 
 		// Check if already connected
-		if (this.agentService.isServerConnected(serverName)) {
+		if (this.agentService?.isServerConnected(serverName)) {
 			return {
 				type: 'info',
 				message: `Server "${serverName}" is already connected.`,
@@ -621,6 +650,12 @@ export class CLIService {
 		}
 
 		try {
+			if (!this.agentService) {
+				return {
+					type: 'error',
+					message: 'Cannot connect server, agent is not initialized.',
+				};
+			}
 			// Get current sessions and add the new server
 			await this.agentService.connectServer(serverName, serverConfig);
 
@@ -660,7 +695,9 @@ export class CLIService {
 		args: string[],
 	): Promise<CommandResult> {
 		if (args.length === 0) {
-			const connectedServers = this.agentService.getConnectedServerNames();
+			const connectedServers = this.agentService
+				? this.agentService.getConnectedServerNames()
+				: [];
 			if (connectedServers.length === 0) {
 				return {
 					type: 'info',
@@ -686,8 +723,10 @@ export class CLIService {
 		}
 
 		try {
-			await this.agentService.disconnectServer(serverName);
-			await this.initializeAgent();
+			if (this.agentService) {
+				await this.agentService.disconnectServer(serverName);
+				await this.initializeAgent();
+			}
 
 			return {
 				type: 'server_action',

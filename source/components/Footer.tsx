@@ -1,4 +1,5 @@
 import {Box, Text} from 'ink';
+import Link from 'ink-link';
 import React from 'react';
 
 export const Footer = ({
@@ -29,6 +30,11 @@ export const Footer = ({
 				) : (
 					<Text>No servers connected</Text>
 				)}
+			</Box>
+			<Box>
+				<Link url="https://discord.com/invite/XkNkSkMz3V" fallback={true}>
+					<Text underline>Support</Text>
+				</Link>
 			</Box>
 			<Box justifyContent="flex-end" paddingX={1} minWidth={25}>
 				<Text color="blue" bold>

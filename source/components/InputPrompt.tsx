@@ -27,10 +27,19 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 	const pasteBufferRef = useRef<string>('');
 	const pasteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const lastInputTimeRef = useRef<number>(Date.now());
+	const isNavigatingHistoryRef = useRef(false);
 
 	// Track if we should allow multiline
 	useEffect(() => {
 		setIsMultiline(value.includes('\n'));
+	}, [value]);
+
+	// Update cursor position when value changes due to history navigation
+	useEffect(() => {
+		if (isNavigatingHistoryRef.current) {
+			setCursorPosition(value.length);
+			isNavigatingHistoryRef.current = false;
+		}
 	}, [value]);
 
 	const handleSubmit = useCallback(() => {
@@ -118,18 +127,57 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 			return;
 		}
 
-		// History navigation with up/down arrows (only in single-line mode)
-		if (!isMultiline) {
-			if (key.upArrow && onHistoryUp) {
+		// History navigation with up/down arrows
+		if (key.upArrow && onHistoryUp) {
+			if (isMultiline) {
+				const lines = value.split('\n');
+				let pos = 0;
+				let cursorRow = 0;
+				for (let row = 0; row < lines.length; row++) {
+					const lineLength = lines[row]?.length || 0;
+					if (pos + lineLength >= cursorPosition) {
+						cursorRow = row;
+						break;
+					}
+					pos += lineLength + 1; // +1 for newline
+				}
+
+				if (cursorRow === 0) {
+					isNavigatingHistoryRef.current = true;
+					onHistoryUp();
+				}
+				// Note: Does not yet handle moving cursor up between lines
+			} else {
+				isNavigatingHistoryRef.current = true;
 				onHistoryUp();
-				setCursorPosition(value.length);
-				return;
 			}
-			if (key.downArrow && onHistoryDown) {
+			return;
+		}
+
+		if (key.downArrow && onHistoryDown) {
+			if (isMultiline) {
+				const lines = value.split('\n');
+				let pos = 0;
+				let cursorRow = 0;
+				for (let row = 0; row < lines.length; row++) {
+					const lineLength = lines[row]?.length || 0;
+					if (pos + lineLength >= cursorPosition) {
+						cursorRow = row;
+						break;
+					}
+					pos += lineLength + 1; // +1 for newline
+				}
+
+				if (cursorRow === lines.length - 1) {
+					isNavigatingHistoryRef.current = true;
+					onHistoryDown();
+				}
+				// Note: Does not yet handle moving cursor down between lines
+			} else {
+				isNavigatingHistoryRef.current = true;
 				onHistoryDown();
-				setCursorPosition(value.length);
-				return;
 			}
+			return;
 		}
 
 		// Backspace
