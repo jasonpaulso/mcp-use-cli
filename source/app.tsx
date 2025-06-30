@@ -17,7 +17,6 @@ import type {
 import {MessageRenderer} from './components/Messages.js';
 import {Footer} from './components/Footer.js';
 import type {MCPServerConfig} from './services/mcp-config-service.js';
-import type {CommandRegistryEntry} from './services/cli-service.js';
 import {CommandSuggestions} from './components/CommandSuggestions.js';
 import Gradient from 'ink-gradient';
 
@@ -44,9 +43,7 @@ export default function App() {
 	const [inputHistory, setInputHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState<number>(-1);
 	const [tempInput, setTempInput] = useState<string>('');
-	const [commandSuggestions, setCommandSuggestions] = useState<
-		Array<[string, CommandRegistryEntry]>
-	>([]);
+	const [suggestions, setSuggestions] = useState<string[]>([]);
 	const {stdout} = useStdout();
 
 	// Initialize MCP service on component mount
@@ -64,7 +61,6 @@ export default function App() {
 					connectedServers: servers,
 				});
 
-				setCommandSuggestions([...cliService.getCommandRegistry().entries()]);
 				setCurrentModel(model);
 				setConnectedServers(servers);
 				setShowInput(true);
@@ -85,6 +81,19 @@ export default function App() {
 
 		initializeMCP();
 	}, []);
+
+	useEffect(() => {
+		const fetchSuggestions = async () => {
+			if (input.startsWith('/')) {
+				const suggs = await cliService.getSuggestions(input);
+				setSuggestions(suggs);
+			} else {
+				setSuggestions([]);
+			}
+		};
+
+		fetchSuggestions();
+	}, [input]);
 
 	// Handle keyboard shortcuts
 	useInput((inputChar, key) => {
@@ -592,10 +601,7 @@ export default function App() {
 			{showInput && !initializationError && (
 				<Box flexDirection="column" marginTop={1}>
 					{input.startsWith('/') && (
-						<CommandSuggestions
-							suggestions={commandSuggestions}
-							query={input}
-						/>
+						<CommandSuggestions suggestions={suggestions} query={input} />
 					)}
 					<Box
 						borderStyle="round"

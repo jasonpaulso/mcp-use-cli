@@ -30,6 +30,7 @@ type CommandHandler = (
 export interface CommandRegistryEntry {
 	handler: CommandHandler;
 	description: string;
+	getSuggestions?: (args: string[]) => Promise<string[]> | string[];
 }
 
 export class CLIService {
@@ -70,6 +71,12 @@ export class CLIService {
 		this.commandRegistry.set('/model', {
 			handler: args => this.llmService.handleModelCommand(args),
 			description: 'Choose your LLM provider and model',
+			getSuggestions: async args => {
+				if (args.length <= 1) {
+					return this.llmService.getAllProviderNames();
+				}
+				return [];
+			},
 		});
 		this.commandRegistry.set('/models', {
 			handler: () => this.llmService.handleListModelsCommand(),
@@ -92,6 +99,7 @@ export class CLIService {
 		this.commandRegistry.set('/server', {
 			handler: args => this.handleServerCommand(args),
 			description: 'Manage MCP servers',
+			getSuggestions: () => ['add', 'connect', 'disconnect'],
 		});
 		this.commandRegistry.set('/server add', {
 			handler: () => this.handleServerAddCommand(),
@@ -100,10 +108,18 @@ export class CLIService {
 		this.commandRegistry.set('/server connect', {
 			handler: async args => this.handleServerConnectCommand(args),
 			description: 'Connect to a configured server',
+			getSuggestions: async () => {
+				const configured = Object.keys(
+					this.mcpConfigService.getConfiguredServers(),
+				);
+				const connected = this.agentService.getConnectedServerNames();
+				return configured.filter(s => !connected.includes(s));
+			},
 		});
 		this.commandRegistry.set('/server disconnect', {
 			handler: async args => this.handleServerDisconnectCommand(args),
 			description: 'Disconnect from a server',
+			getSuggestions: async () => this.agentService.getConnectedServerNames(),
 		});
 		this.commandRegistry.set('/servers', {
 			handler: () => this.handleListServersCommand(),
@@ -660,34 +676,104 @@ export class CLIService {
 			};
 		}
 
-		// Check if server is connected
-		if (!this.agentService.isServerConnected(serverName)) {
-			return {
-				type: 'error',
-				message: `Server "${serverName}" is not connected.`,
-			};
-		}
-
 		try {
-			// Get current sessions and remove the server
-			this.agentService.disconnectServer(serverName);
+			await this.agentService.disconnectServer(serverName);
+			await this.initializeAgent();
 
 			return {
-				type: 'success',
-				message: `✅ Disconnected from server "${serverName}".`,
-				data: {reinitializeAgent: true},
+				type: 'server_action',
+				message: `Disconnected from server: ${serverName}`,
+				data: {
+					reinitializeAgent: true,
+					serverName,
+					action: 'disconnect',
+				},
 			};
 		} catch (error) {
-			Logger.error(`Failed to disconnect from server ${serverName}`, {
-				error: error instanceof Error ? error.message : String(error),
-			});
 			return {
 				type: 'error',
-				message: `Failed to disconnect from server "${serverName}": ${
+				message: `Failed to disconnect from ${serverName}: ${
 					error instanceof Error ? error.message : 'Unknown error'
 				}`,
 			};
 		}
+	}
+
+	/**
+	 * Gets command suggestions based on the user's input.
+	 * It can suggest commands, subcommands, or arguments.
+	 * @param text The full input string from the user.
+	 * @returns A promise that resolves to an array of suggestion strings.
+	 */
+	public async getSuggestions(text: string): Promise<string[]> {
+		const parts = text.trim().split(/\s+/);
+		const commandName = parts[0] || '';
+
+		// If there's no space, suggest top-level commands that are not subcommands
+		if (!text.includes(' ')) {
+			return [...this.commandRegistry.keys()].filter(
+				c => c.startsWith(commandName) && !c.includes(' '),
+			);
+		}
+
+		const getPotentialCommands = (
+			input: string,
+		): Array<{
+			cmd: string;
+			entry: CommandRegistryEntry;
+			args: string[];
+		}> => {
+			const result: Array<{
+				cmd: string;
+				entry: CommandRegistryEntry;
+				args: string[];
+			}> = [];
+			const ps = input.trim().split(' ');
+			// Check for command with subcommand
+			if (ps.length >= 2) {
+				const twoPartCmd = `${ps[0]} ${ps[1]}`;
+				if (this.commandRegistry.has(twoPartCmd)) {
+					result.push({
+						cmd: twoPartCmd,
+						entry: this.commandRegistry.get(twoPartCmd)!,
+						args: ps.slice(2),
+					});
+				}
+			}
+			// Check for base command
+			if (this.commandRegistry.has(ps[0]!)) {
+				result.push({
+					cmd: ps[0]!,
+					entry: this.commandRegistry.get(ps[0]!)!,
+					args: ps.slice(1),
+				});
+			}
+			return result;
+		};
+
+		const potentialCommands = getPotentialCommands(text);
+		if (potentialCommands.length === 0) {
+			return [];
+		}
+
+		// Prioritize longer command matches (subcommands)
+		const {entry, args} =
+			potentialCommands.length > 1 &&
+			potentialCommands[0]!.cmd.length > potentialCommands[1]!.cmd.length
+				? potentialCommands[0]!
+				: potentialCommands.at(-1)!;
+
+		if (entry.getSuggestions) {
+			const suggestions = await entry.getSuggestions(args);
+			const lastArg = text.endsWith(' ') ? '' : args.at(-1) || '';
+			const filtered = suggestions.filter(s => s.startsWith(lastArg));
+			const baseCommand = text.endsWith(' ')
+				? text
+				: text.slice(0, -lastArg.length);
+			return filtered.map(s => `${baseCommand}${s}`);
+		}
+
+		return [];
 	}
 
 	/**

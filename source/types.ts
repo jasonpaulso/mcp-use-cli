@@ -26,7 +26,8 @@ export type CommandResultType =
 	| 'list_tools'
 	| 'model_switched'
 	| 'server_connected'
-	| 'server_disconnected';
+	| 'server_disconnected'
+	| 'server_action';
 
 // Specific data types for different command results
 export interface PromptApiKeyData {

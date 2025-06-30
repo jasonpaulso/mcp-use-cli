@@ -167,6 +167,10 @@ export class LLMService {
 			.map(([providerName]) => providerName);
 	}
 
+	getAllProviderNames(): string[] {
+		return Object.keys(PROVIDERS);
+	}
+
 	isAnyProviderAvailable(): boolean {
 		return this.getAvailableProviders().length > 0;
 	}
