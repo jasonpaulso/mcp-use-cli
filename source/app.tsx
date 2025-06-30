@@ -540,9 +540,11 @@ export default function App() {
 							</Box>
 						)}
 						<Box marginTop={1}>
+						<Text color="gray">
 							<Gradient name="vice">
-								<Text> To support us check out https://mcp.use.com ❤️ ⭐</Text>
+								<Text >To support us check out https://mcp-use.com ❤️ ⭐</Text>
 							</Gradient>
+						</Text>
 						</Box>
 					</Box>
 				)}
