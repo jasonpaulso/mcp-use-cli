@@ -358,12 +358,11 @@ export class LLMService {
 		return status;
 	}
 
-	createLLM(): BaseLanguageModelInterface {
+	createLLM(): BaseLanguageModelInterface | null {
 		if (!this.currentLLMConfig) {
-			throw new Error(
-				'No LLM configured. Use /model command to select a provider and model.',
-			);
+			return null;
 		}
+
 		const config = this.currentLLMConfig;
 		const providerInfo = PROVIDERS[config.provider];
 		if (!providerInfo) {

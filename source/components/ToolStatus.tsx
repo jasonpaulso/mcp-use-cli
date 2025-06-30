@@ -12,7 +12,7 @@ export function ToolStatus({tools, error}: ToolStatusProps) {
 		return (
 			<Box flexDirection="column" marginTop={1}>
 				<Text color="red">❌ Error: {error}</Text>
-				<Text>💡 This might indicate:</Text>
+				<Text> This might indicate:</Text>
 				<Box marginLeft={2} flexDirection="column">
 					<Text>• MCP servers failed to start</Text>
 					<Text>• Connection issues with configured servers</Text>

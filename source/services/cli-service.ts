@@ -610,7 +610,7 @@ export class CLIService {
 
 			return {
 				type: 'success',
-				message: `✅ Connected to server "${serverName}"!`,
+				message: `Connected to server "${serverName}"!`,
 				data: {reinitializeAgent: true},
 			};
 		} catch (error) {

@@ -378,7 +378,7 @@ export class MCPConfigService {
 
 		return {
 			type: 'info',
-			message: `🧪 Testing server "${serverName}"...\n\nCommand: ${result.command}\n\n⚠️ Note: This will attempt to run the server command manually.\nCheck the console for output and errors.\n\n💡 Try running this command manually in your terminal:\n${result.command}`,
+			message: `🧪 Testing server "${serverName}"...\n\nCommand: ${result.command}\n\n Note: This will attempt to run the server command manually.\nCheck the console for output and errors.\n\n Try running this command manually in your terminal:\n${result.command}`,
 			data: {testServer: true, serverName, command: result.command},
 		};
 	}

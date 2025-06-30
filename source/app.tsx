@@ -365,6 +365,19 @@ export default function App() {
 
 		setMessages(prev => [...prev, userMessage]);
 		setInput('');
+
+		if (currentModel.includes('No') && !trimmedInput.startsWith('/')) {
+			const errorMessage: Message = {
+				id: (Date.now() + 1).toString(),
+				role: 'assistant',
+				content: `No model configured. Use /model to select a provider and model.`,
+				timestamp: new Date(),
+			};
+			setMessages(prev => [...prev, errorMessage]);
+			setIsLoading(false);
+			return;
+		}
+
 		setIsLoading(true);
 
 		try {
@@ -506,7 +519,7 @@ export default function App() {
 					</Box>
 				)}
 
-				{!initializationError && messages.length === 0 && !isLoading && (
+				{!initializationError && !isLoading && (
 					<Box
 						marginBottom={1}
 						flexDirection="column"
@@ -518,12 +531,12 @@ export default function App() {
 						<Text color="gray">Welcome to MCP-Use CLI!</Text>
 						{currentModel.includes('No') ? (
 							<Box flexDirection="column">
-								<Text color="yellow">⚠️ {currentModel}</Text>
+								<Text color="yellow">{currentModel}</Text>
 								<Text color="gray">
 									Choose a model to get started - the CLI will help you set up
 									the API key.
 								</Text>
-								<Text color="cyan">💡 Try: /model openai gpt-4o-mini</Text>
+								<Text color="cyan">Try: /model openai gpt-4o-mini</Text>
 								<Text color="gray">
 									Or use /models to see all options, /help for commands.
 								</Text>

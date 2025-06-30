@@ -100,14 +100,14 @@ Available slash commands:
 		// Current model
 		if (!currentConfig) {
 			if (availableProviders.length === 0) {
-				statusText += '⚠️ No model selected\n';
+				statusText += ' No model selected\n';
 				statusText += '\nChoose a model to get started:\n';
 				statusText += '• /model openai gpt-4o-mini\n';
 				statusText += '• /model anthropic claude-3-5-sonnet-20241022\n';
 				statusText += '• /model google gemini-1.5-pro\n';
 				statusText += '\nThe CLI will help you set up API keys when needed.';
 			} else {
-				statusText += '⚠️ No model selected\n';
+				statusText += ' No model selected\n';
 				statusText += `\nAvailable providers: ${availableProviders.join(
 					', ',
 				)}\n`;
