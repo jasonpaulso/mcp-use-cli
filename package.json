@@ -60,14 +60,15 @@
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^3.0.1",
 		"@types/react": "^18.0.32",
-		"@typescript-eslint/eslint-plugin": "^7.18.0",
-		"@typescript-eslint/parser": "^7.18.0",
+		"@typescript-eslint/eslint-plugin": "^8.35.0",
+		"@typescript-eslint/parser": "^8.35.0",
 		"@vdemedes/prettier-config": "^2.0.1",
-		"eslint": "^9.8.0",
+		"eslint": "^9.30.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-prettier": "^5.2.1",
 		"prettier": "^3.3.3",
-		"typescript": "^5.0.3"
+		"typescript": "^5.0.3",
+		"typescript-eslint": "^8.35.0"
 	},
 	"prettier": "@vdemedes/prettier-config"
 }
