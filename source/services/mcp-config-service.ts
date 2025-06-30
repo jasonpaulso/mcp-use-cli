@@ -5,6 +5,7 @@ export interface MCPServerConfig {
 	command: string;
 	args?: string[];
 	env?: Record<string, string>;
+	url?: string;
 }
 
 export interface MCPServerConfigResult {
@@ -70,10 +71,13 @@ export class MCPConfigService {
 			// Validate each server config
 			for (const [name, serverConfig] of Object.entries(servers)) {
 				const server = serverConfig as MCPServerConfig;
-				if (!server.command || typeof server.command !== 'string') {
+				if (
+					(!server.command || typeof server.command !== 'string') &&
+					(!server.url || typeof server.url !== 'string')
+				) {
 					return {
 						success: false,
-						message: `Server "${name}" missing required "command" field.`,
+						message: `Server "${name}" missing required "command" or "url" field.`,
 					};
 				}
 			}
@@ -393,164 +397,35 @@ export class MCPConfigService {
 	 */
 	handleServerConfigInput(
 		input: string,
-		step: string,
-		serverConfig?: Partial<MCPServerConfig> & {name?: string},
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		_step: string,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		_serverConfig?: Partial<MCPServerConfig> & {name?: string},
 	): CommandResult {
-		const config = serverConfig || {};
+		// Input is expected to be a JSON string
+		const trimmedInput = input.trim();
 
-		switch (step) {
-			case 'name_or_json':
-				// Check if input looks like JSON
-				const trimmedInput = input.trim();
-				if (
-					trimmedInput.startsWith('{') &&
-					trimmedInput.includes('mcpServers')
-				) {
-					const result = this.addServerFromJSON(trimmedInput);
-					if (!result.success) {
-						return {
-							type: 'error',
-							message: result.message,
-						};
-					}
-
-					return {
-						type: 'success',
-						message: `${result.message}.`,
-						data: result.data,
-					};
-				}
-
-				// Not JSON, treat as server name for interactive setup
-				const validation = this.validateServerName(trimmedInput);
-				if (!validation.valid) {
-					return {
-						type: 'error',
-						message: validation.message!,
-					};
-				}
-
-				config.name = trimmedInput;
-				return {
-					type: 'prompt_server_config',
-					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
-					data: {step: 'command', config},
-				};
-
-			case 'name':
-				const nameValidation = this.validateServerName(input.trim());
-				if (!nameValidation.valid) {
-					return {
-						type: 'error',
-						message: nameValidation.message!,
-					};
-				}
-
-				config.name = input.trim();
-				return {
-					type: 'prompt_server_config',
-					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
-					data: {step: 'command', config},
-				};
-
-			case 'command':
-				if (!input.trim()) {
-					return {
-						type: 'error',
-						message: 'Command cannot be empty.',
-					};
-				}
-
-				config.command = input.trim();
-				return {
-					type: 'prompt_server_config',
-					message: `Server name: ${config.name}\nCommand: ${config.command}\n\nEnter arguments (space-separated, or press Enter for none):\nExample: "-y @modelcontextprotocol/server-filesystem /tmp"`,
-					data: {step: 'args', config},
-				};
-
-			case 'args':
-				config.args = input.trim() ? input.trim().split(/\s+/) : [];
-				return {
-					type: 'prompt_server_config',
-					message: `Server name: ${config.name}\nCommand: ${
-						config.command
-					}\nArgs: ${
-						config.args.length > 0 ? config.args.join(' ') : 'none'
-					}\n\nEnter environment variables (KEY=VALUE format, one per line, or press Enter for none):\nExample: "DEBUG=1" or press Enter to skip:`,
-					data: {step: 'env', config},
-				};
-
-			case 'env':
-				config.env = this.parseEnvironmentVariables(input);
-
-				return {
-					type: 'prompt_server_config',
-					message: `Server Configuration Summary:\n\nName: ${
-						config.name
-					}\nCommand: ${config.command}\nArgs: ${
-						config.args && config.args.length > 0
-							? config.args.join(' ')
-							: 'none'
-					}\nEnv: ${
-						config.env && Object.keys(config.env).length > 0
-							? Object.entries(config.env)
-									.map(([k, v]) => `${k}=${v}`)
-									.join(', ')
-							: 'none'
-					}\n\nConfirm to add this server? (y/n):`,
-					data: {step: 'confirm', config},
-				};
-
-			case 'confirm':
-				if (
-					input.trim().toLowerCase() === 'y' ||
-					input.trim().toLowerCase() === 'yes'
-				) {
-					if (!config.command) {
-						return {
-							type: 'error',
-							message: 'Server command is required',
-						};
-					}
-					const serverConfig: MCPServerConfig = {
-						command: config.command,
-						args: config.args,
-						env: config.env,
-					};
-
-					const result = this.addServer(config.name || '', serverConfig);
-					if (!result.success) {
-						return {
-							type: 'error',
-							message: result.message,
-						};
-					}
-
-					return {
-						type: 'success',
-						message: `${result.message}.`,
-						data: result.data,
-					};
-				} else if (
-					input.trim().toLowerCase() === 'n' ||
-					input.trim().toLowerCase() === 'no'
-				) {
-					return {
-						type: 'info',
-						message: 'Server configuration cancelled.',
-					};
-				} else {
-					return {
-						type: 'error',
-						message: 'Please enter "y" for yes or "n" for no.',
-					};
-				}
-
-			default:
-				return {
-					type: 'error',
-					message: 'Invalid server configuration step.',
-				};
+		// A simple check to see if it could be JSON
+		if (!trimmedInput.startsWith('{')) {
+			return {
+				type: 'error',
+				message:
+					'Invalid input. Please paste the full JSON configuration for the server(s).',
+			};
 		}
+
+		const result = this.addServerFromJSON(trimmedInput);
+		if (!result.success) {
+			return {
+				type: 'error',
+				message: result.message,
+			};
+		}
+
+		return {
+			type: 'success',
+			message: `${result.message}.`,
+			data: result.data,
+		};
 	}
 }

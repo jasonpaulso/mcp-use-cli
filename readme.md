@@ -104,7 +104,7 @@ This CLI is a client for [Model Context Protocol (MCP)](https://github.com/mcp-u
 You can manage servers with the `/server` commands:
 
 ```bash
-# Interactively add a new server configuration
+# Add a new server configuration by pasting its JSON definition
 /server add
 
 # List configured servers
@@ -117,23 +117,39 @@ You can manage servers with the `/server` commands:
 /server disconnect <server-name>
 ```
 
-When you add a server, you'll be prompted for its configuration details, such as the command to run it. Here is an example of what a server configuration for a filesystem tool looks like:
+When you add a server, you'll be prompted for its JSON configuration. Here are examples for local and remote servers:
+
+**Local Server Example (e.g., a filesystem tool):**
 
 ```json
 {
-	"filesystem-tool": {
-		"command": "npx",
-		"args": [
-			"-y",
-			"@modelcontextprotocol/server-filesystem",
-			"/path/to/your/project"
-		],
-		"env": {}
+	"mcpServers": {
+		"filesystem-tool": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-filesystem",
+				"/path/to/your/project"
+			],
+			"env": {}
+		}
 	}
 }
 ```
 
-This configuration would be created interactively by running `/server add` and answering the prompts.
+**Remote Server Example (e.g., an SSE endpoint):**
+
+```json
+{
+	"mcpServers": {
+		"remote-tool": {
+			"url": "http://127.0.0.1:8000/sse"
+		}
+	}
+}
+```
+
+This configuration would be pasted directly into the CLI after running `/server add`.
 
 ## Slash Commands
 

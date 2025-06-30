@@ -562,7 +562,7 @@ export class CLIService {
 		return {
 			type: 'prompt_server_config',
 			message:
-				'Let\'s configure a new MCP server!\n\nYou can either:\n1. Enter a server name for interactive setup\n2. Paste a complete JSON configuration\n\nExample JSON:\n{\n  "mcpServers": {\n    "myserver": {\n      "command": "npx",\n      "args": ["-y", "@example/server"]\n    }\n  }\n}\n\nEnter server name or paste JSON:',
+				'Paste a complete JSON configuration for one or more MCP servers.\n\nExample for a local tool:\n{\n  "mcpServers": {\n    "my-local-tool": {\n      "command": "npx",\n      "args": ["-y", "@example/server"]\n    }\n  }\n}\n\nExample for a remote tool:\n{\n  "mcpServers": {\n    "my-remote-tool": {\n      "url": "http://127.0.0.1:8000/sse"\n    }\n  }\n}\n\nEnter JSON configuration:',
 			data: {step: 'name_or_json'},
 		};
 	}
@@ -633,6 +633,15 @@ export class CLIService {
 			Logger.error(`Failed to connect to server ${serverName}`, {
 				error: error instanceof Error ? error.message : String(error),
 			});
+			if (error instanceof Error && error.message.includes('40')) {
+				return {
+					type: 'error',
+					message: `Failed to connect to server "${serverName}": ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}. \n\nIf your server uses streamableHttp, it did not work because our TS library does not support it yet. 
+						\nIf you'd like us to implement this as soon as possible, please let us know at https://mcp-use.com/what-should-we-build-next`,
+				};
+			}
 			return {
 				type: 'error',
 				message: `Failed to connect to server "${serverName}": ${
