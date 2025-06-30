@@ -8,14 +8,8 @@ A CLI tool for interacting with Model Context Protocol (MCP) servers using natur
 
 ## Built with [mcp-use](https://mcp-use.com), build your own MCP application with our SDKs:
 
-<div style="display: flex; justify-content: center; align-items: center; gap: 2rem; margin: 2rem 1rem 0rem 0rem; font-size: 1.5rem;">
-  <span>
-    <strong>Python</strong> <a href="https://github.com/mcp-use/mcp-use"><img src="static/python.png" alt="Python" height="24" style="vertical-align: middle; margin-right: 4px;"/>mcp-use/mcp-use</a>
-  </span>
-  <span>
-    <strong>Typescript</strong> <a href="https://github.com/mcp-use/mcp-use-ts"><img src="static/typescript.png" alt="TypeScript" height="24" style="vertical-align: middle; margin-right: 4px;"/>mcp-use/mcp-use-ts</a>
-  </span>
-</div>
+<h4><strong>Python</strong> <a href="https://github.com/mcp-use/mcp-use"><img src="static/python.png" alt="Python" height="24" style="vertical-align: middle; margin-right: 4px;"/>mcp-use/mcp-use</a></h4>
+<h4><strong>Typescript</strong> <a href="https://github.com/mcp-use/mcp-use-ts"><img src="static/typescript.png" alt="TypeScript" height="20" style="vertical-align: middle; margin-right: 4px;"/>mcp-use/mcp-use-ts</a></h4>
 
 ## Features
 
