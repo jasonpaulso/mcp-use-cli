@@ -527,8 +527,8 @@ export default function App() {
 	};
 
 	return (
-		<Box flexDirection="column" minHeight={stdout.rows || 24}>
-			<Box flexDirection="column" flexGrow={1} paddingX={1}>
+		<Box flexDirection="column" minHeight={stdout.rows || 24} paddingX={1}>
+			<Box flexDirection="column" flexGrow={1}>
 				{initializationError && (
 					<Box marginBottom={1}>
 						<Text color="red">❌ {initializationError}</Text>

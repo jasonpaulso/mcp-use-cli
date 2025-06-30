@@ -14,6 +14,9 @@ export const Footer = ({
 			justifyContent="space-between"
 			paddingX={1}
 			minWidth={25}
+			marginX={1}
+			marginTop={1}
+			marginBottom={1}
 		>
 			<Box justifyContent="flex-start" paddingX={1} minWidth={25}>
 				{servers.length > 0 ? (
