@@ -125,6 +125,7 @@ When you add a server, you'll be prompted for its configuration details, such as
 	}
 }
 ```
+
 This configuration would be created interactively by running `/server add` and answering the prompts.
 
 ## Slash Commands
@@ -177,6 +178,49 @@ This CLI uses:
 - **Agent**: mcp-use MCPAgent for LLM + MCP integration
 - **LLM**: Your choice of 12+ providers
 - **Transport**: Direct TypeScript integration (no API layer)
+
+## Privacy & Telemetry
+
+This package uses [Scarf](https://scarf.sh) to collect basic installation analytics to help us understand how the package is being used. This data helps us improve the tool and prioritize features.
+
+### What data is collected?
+
+Scarf collects:
+
+- Operating system information
+- IP address (used only for company lookup, not stored)
+- Limited dependency tree information (hashed for privacy)
+
+**No personally identifying information is stored.**
+
+### How to disable telemetry
+
+You can opt out of analytics in several ways:
+
+**Option 1: Environment variable**
+
+```bash
+export SCARF_ANALYTICS=false
+```
+
+**Option 2: Standard Do Not Track**
+
+```bash
+export DO_NOT_TRACK=1
+```
+
+**Option 3: For package maintainers**
+If you distribute a package that depends on this CLI, you can disable analytics for all your downstream users by adding this to your `package.json`:
+
+```json
+{
+	"scarfSettings": {
+		"enabled": false
+	}
+}
+```
+
+For more information about Scarf and privacy, visit [scarf.sh](https://scarf.sh).
 
 ## License
 
