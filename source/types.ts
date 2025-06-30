@@ -1,3 +1,7 @@
+import type {MCPServerConfig} from './services/mcp-config-service.js';
+import type {Tool} from '@modelcontextprotocol/sdk/types.js';
+import type {LLMConfig} from './services/llm-service.js';
+
 export type CommandMessage = {
 	id: string;
 	role: 'command';
@@ -9,7 +13,7 @@ export type CommandMessage = {
 export interface ServerStatus {
 	name: string;
 	isConnected: boolean;
-	config: any;
+	config: unknown;
 }
 
 export type CommandResultType =
@@ -24,10 +28,49 @@ export type CommandResultType =
 	| 'server_connected'
 	| 'server_disconnected';
 
+// Specific data types for different command results
+export interface PromptApiKeyData {
+	provider: string;
+	model: string;
+}
+
+export interface PromptServerConfigData {
+	step: string;
+	config?: Partial<MCPServerConfig> & {name?: string};
+}
+
+export interface ListServersData {
+	servers: ServerStatus[];
+}
+
+export interface ListToolsData {
+	tools: Tool[];
+	error?: string;
+	checkTools?: boolean;
+}
+
+export interface LLMConfigData {
+	llmConfig?: LLMConfig | null;
+}
+
+export interface ServerActionData {
+	serversAdded?: boolean;
+	serverNames?: string[];
+	reinitializeAgent?: boolean;
+}
+
 export interface CommandResult {
 	type: CommandResultType;
 	message: string;
-	data?: any;
+	data?:
+		| PromptApiKeyData
+		| PromptServerConfigData
+		| ListServersData
+		| ListToolsData
+		| LLMConfigData
+		| ServerActionData
+		| {checkTools?: boolean; reinitializeAgent?: boolean}
+		| unknown;
 	reinitializeAgent?: boolean;
 }
 
@@ -42,6 +85,6 @@ export interface ToolCall {
 	id: string;
 	role: 'tool';
 	tool_name: string;
-	tool_input: Record<string, any>;
-	tool_output: Record<string, any>;
+	tool_input: Record<string, unknown>;
+	tool_output: Record<string, unknown>;
 }

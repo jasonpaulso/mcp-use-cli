@@ -3,6 +3,8 @@ import {Logger} from '../logger.js';
 import type {Tool} from '@modelcontextprotocol/sdk/types.js';
 import type {ToolCall, CommandResult} from '../types.js';
 import {LLMService} from './llm-service.js';
+import type {AgentStep} from '@langchain/core/agents';
+import type {MCPServerConfig} from './mcp-config-service.js';
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
@@ -44,7 +46,7 @@ export class AgentService {
 			let result = await generator.next();
 
 			while (!result.done) {
-				const agentStep: any = result.value; // This is of type AgentStep
+				const agentStep: AgentStep = result.value;
 
 				if (agentStep.action) {
 					// The 'log' contains the "Thought:" part.
@@ -56,8 +58,8 @@ export class AgentService {
 						id: `${agentStep.action.tool}-${Date.now()}`, // Create a simple unique ID
 						role: 'tool',
 						tool_name: agentStep.action.tool,
-						tool_input: agentStep.action.toolInput,
-						tool_output: agentStep.observation,
+						tool_input: agentStep.action.toolInput as Record<string, unknown>,
+						tool_output: {result: agentStep.observation},
 					};
 
 					yield {toolCalls: [toolCall]};
@@ -99,7 +101,7 @@ export class AgentService {
 					Logger.debug(`Found tools in connector for session ${sessionName}`, {
 						toolCount: session.connector.tools.length,
 					});
-					const sessionTools = session.connector.tools.map((tool: any) => ({
+					const sessionTools = session.connector.tools.map((tool: Tool) => ({
 						...tool,
 						session: sessionName,
 					}));
@@ -139,7 +141,7 @@ export class AgentService {
 	 * Gets all active MCP sessions.
 	 * @returns Object with session names as keys
 	 */
-	getActiveSessions(): Record<string, any> {
+	getActiveSessions(): Record<string, unknown> {
 		if (!this.client) {
 			return {};
 		}
@@ -193,7 +195,10 @@ export class AgentService {
 	 * @param serverConfig - Configuration for the server
 	 * @returns Promise that resolves when connected
 	 */
-	async connectServer(serverName: string, serverConfig: any): Promise<void> {
+	async connectServer(
+		serverName: string,
+		serverConfig: MCPServerConfig,
+	): Promise<void> {
 		if (!this.agent || !this.client) {
 			throw new Error('Agent not initialized');
 		}

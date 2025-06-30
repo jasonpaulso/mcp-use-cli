@@ -2,6 +2,7 @@ import {Logger} from '../logger.js';
 import type {CommandResult} from '../types.js';
 import type {LLMService} from './llm-service.js';
 import type {MCPConfigService} from './mcp-config-service.js';
+import * as fs from 'fs';
 
 /**
  * Service that handles utility commands like help, logs, history, and status.
@@ -154,7 +155,6 @@ Available slash commands:
 
 			case 'tail':
 				try {
-					const fs = require('fs');
 					if (!fs.existsSync(logPath)) {
 						return {
 							type: 'info',

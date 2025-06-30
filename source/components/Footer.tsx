@@ -5,7 +5,7 @@ export const Footer = ({
 	servers,
 	modelSlug,
 }: {
-	servers: any;
+	servers: string[];
 	modelSlug: string;
 }) => {
 	return (

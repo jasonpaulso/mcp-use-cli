@@ -14,7 +14,7 @@ export class Logger {
 	private static formatMessage(
 		level: string,
 		message: string,
-		data?: any,
+		data?: unknown,
 	): string {
 		const timestamp = new Date().toISOString();
 		const dataStr = data ? ` | Data: ${JSON.stringify(data, null, 2)}` : '';
@@ -30,19 +30,19 @@ export class Logger {
 		}
 	}
 
-	static debug(message: string, data?: any): void {
+	static debug(message: string, data?: unknown): void {
 		this.writeToFile(this.formatMessage('debug', message, data));
 	}
 
-	static info(message: string, data?: any): void {
+	static info(message: string, data?: unknown): void {
 		this.writeToFile(this.formatMessage('info', message, data));
 	}
 
-	static warn(message: string, data?: any): void {
+	static warn(message: string, data?: unknown): void {
 		this.writeToFile(this.formatMessage('warn', message, data));
 	}
 
-	static error(message: string, data?: any): void {
+	static error(message: string, data?: unknown): void {
 		this.writeToFile(this.formatMessage('error', message, data));
 	}
 

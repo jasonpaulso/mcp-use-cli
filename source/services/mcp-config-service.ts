@@ -10,7 +10,7 @@ export interface MCPServerConfig {
 export interface MCPServerConfigResult {
 	success: boolean;
 	message: string;
-	data?: any;
+	data?: unknown;
 }
 
 export class MCPConfigService {
@@ -69,7 +69,7 @@ export class MCPConfigService {
 
 			// Validate each server config
 			for (const [name, serverConfig] of Object.entries(servers)) {
-				const server = serverConfig as any;
+				const server = serverConfig as MCPServerConfig;
 				if (!server.command || typeof server.command !== 'string') {
 					return {
 						success: false,
@@ -393,7 +393,7 @@ export class MCPConfigService {
 	handleServerConfigInput(
 		input: string,
 		step: string,
-		serverConfig?: any,
+		serverConfig?: Partial<MCPServerConfig> & {name?: string},
 	): CommandResult {
 		const config = serverConfig || {};
 
@@ -487,9 +487,11 @@ export class MCPConfigService {
 					message: `Server Configuration Summary:\n\nName: ${
 						config.name
 					}\nCommand: ${config.command}\nArgs: ${
-						config.args.length > 0 ? config.args.join(' ') : 'none'
+						config.args && config.args.length > 0
+							? config.args.join(' ')
+							: 'none'
 					}\nEnv: ${
-						Object.keys(config.env).length > 0
+						config.env && Object.keys(config.env).length > 0
 							? Object.entries(config.env)
 									.map(([k, v]) => `${k}=${v}`)
 									.join(', ')
@@ -503,13 +505,19 @@ export class MCPConfigService {
 					input.trim().toLowerCase() === 'y' ||
 					input.trim().toLowerCase() === 'yes'
 				) {
-					const serverConfig = {
+					if (!config.command) {
+						return {
+							type: 'error',
+							message: 'Server command is required',
+						};
+					}
+					const serverConfig: MCPServerConfig = {
 						command: config.command,
 						args: config.args,
 						env: config.env,
 					};
 
-					const result = this.addServer(config.name, serverConfig);
+					const result = this.addServer(config.name || '', serverConfig);
 					if (!result.success) {
 						return {
 							type: 'error',

@@ -1,5 +1,6 @@
 import {CommandMessage, ToolCall} from '../types.js';
 import {Message} from '../types.js';
+import type {ListServersData, ListToolsData} from '../types.js';
 import React from 'react';
 import {Box, Text} from 'ink';
 import {ServerStatus} from './ServerStatus.js';
@@ -107,16 +108,17 @@ export const CommandMessageRenderer = ({
 			</Box>
 			<Box flexDirection="column" flexGrow={1}>
 				<Text>{message.content}</Text>
-				{commandResult.type === 'list_servers' &&
-					commandResult.data?.servers && (
-						<ServerStatus servers={commandResult.data.servers} />
-					)}
-				{commandResult.type === 'list_tools' && commandResult.data && (
-					<ToolStatus
-						tools={commandResult.data.tools}
-						error={commandResult.data.error}
+				{commandResult.type === 'list_servers' && commandResult.data ? (
+					<ServerStatus
+						servers={(commandResult.data as ListServersData).servers}
 					/>
-				)}
+				) : null}
+				{commandResult.type === 'list_tools' && commandResult.data ? (
+					<ToolStatus
+						tools={(commandResult.data as ListToolsData).tools}
+						error={(commandResult.data as ListToolsData).error}
+					/>
+				) : null}
 			</Box>
 		</Box>
 	);

@@ -13,6 +13,7 @@ import {ChatDeepSeek} from '@langchain/deepseek';
 import {ChatXAI} from '@langchain/xai';
 import {SecureStorage, StoredConfig} from '../storage.js';
 import type {CommandResult} from '../types.js';
+import type {BaseLanguageModelInterface} from '@langchain/core/language_models/base';
 
 export type ProviderKey = keyof typeof PROVIDERS;
 
@@ -357,7 +358,7 @@ export class LLMService {
 		return status;
 	}
 
-	createLLM(): any {
+	createLLM(): BaseLanguageModelInterface {
 		if (!this.currentLLMConfig) {
 			throw new Error(
 				'No LLM configured. Use /model command to select a provider and model.',
@@ -375,9 +376,13 @@ export class LLMService {
 			);
 		}
 		const llm = providerInfo.factory(apiKey!, config);
-		(llm as any).temperature = config.temperature ?? 0.7;
-		(llm as any).maxTokens = config.maxTokens;
-		return llm;
+		const llmWithOptions = llm as BaseLanguageModelInterface & {
+			temperature?: number;
+			maxTokens?: number;
+		};
+		llmWithOptions.temperature = config.temperature ?? 0.7;
+		llmWithOptions.maxTokens = config.maxTokens;
+		return llmWithOptions;
 	}
 
 	/**
@@ -456,7 +461,7 @@ export class LLMService {
 	 * @param args - Optional array with provider name to filter models
 	 * @returns A CommandResult with the list of available models
 	 */
-	handleListModelsCommand(_args: string[]): CommandResult {
+	handleListModelsCommand(): CommandResult {
 		const currentConfig = this.getCurrentConfig();
 
 		let modelList = '📋 Available models by provider:\n\n';

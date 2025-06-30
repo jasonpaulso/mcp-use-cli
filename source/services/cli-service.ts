@@ -2,9 +2,11 @@ import {config} from 'dotenv';
 import {Logger} from '../logger.js';
 import type {CommandResult} from '../types.js';
 import type {ToolCall} from '../types.js';
+import type {Tool} from '@modelcontextprotocol/sdk/types.js';
+import type {LLMConfigData, ServerActionData} from '../types.js';
 import {AgentService} from './agent-service.js';
 import {LLMService} from './llm-service.js';
-import {MCPConfigService} from './mcp-config-service.js';
+import {MCPConfigService, type MCPServerConfig} from './mcp-config-service.js';
 import {UtilityService} from './utility-service.js';
 
 // Load environment variables
@@ -70,7 +72,7 @@ export class CLIService {
 			description: 'Choose your LLM provider and model',
 		});
 		this.commandRegistry.set('/models', {
-			handler: args => this.llmService.handleListModelsCommand(args),
+			handler: () => this.llmService.handleListModelsCommand(),
 			description: 'List available models',
 		});
 		this.commandRegistry.set('/setkey', {
@@ -255,7 +257,7 @@ export class CLIService {
 		pendingModel?: string,
 		isServerConfigInput?: boolean,
 		serverConfigStep?: string,
-		serverConfig?: any,
+		serverConfig?: Partial<MCPServerConfig> & {name?: string},
 	): AsyncGenerator<{
 		response?: string;
 		toolCalls?: ToolCall[];
@@ -290,7 +292,8 @@ export class CLIService {
 			);
 
 			// If successful, reinitialize the agent
-			if (commandResult.data?.llmConfig) {
+			const llmData = commandResult.data as LLMConfigData | undefined;
+			if (llmData?.llmConfig) {
 				await this.initializeAgent();
 			}
 
@@ -309,7 +312,12 @@ export class CLIService {
 				const commandResult = await this.handleCommand(message);
 
 				// Handle special commands that need coordination
-				if (commandResult.data?.checkTools) {
+				if (
+					commandResult.data &&
+					typeof commandResult.data === 'object' &&
+					'checkTools' in commandResult.data &&
+					commandResult.data.checkTools
+				) {
 					const toolsResult = await this.agentService.getAvailableTools();
 
 					yield {
@@ -327,10 +335,13 @@ export class CLIService {
 				}
 
 				// If the command changed the LLM config, added servers, or needs agent reinitialization
+				const cmdData = commandResult.data as
+					| (LLMConfigData & ServerActionData)
+					| undefined;
 				if (
-					commandResult.data?.llmConfig ||
-					commandResult.data?.serversAdded ||
-					commandResult.data?.reinitializeAgent
+					cmdData?.llmConfig ||
+					cmdData?.serversAdded ||
+					cmdData?.reinitializeAgent
 				) {
 					await this.initializeAgent();
 				}
@@ -472,7 +483,7 @@ export class CLIService {
 	 * Gets the list of available tools from the agent.
 	 * @returns A promise that resolves to an object containing the tools or an error.
 	 */
-	async getAvailableTools(): Promise<{tools: any[]; error?: string}> {
+	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
 		return this.agentService.getAvailableTools();
 	}
 

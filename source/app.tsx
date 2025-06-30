@@ -8,8 +8,15 @@ import AsciiLogo from './components/AsciiLogo.js';
 import {CommandMessage} from './types.js';
 import {ToolCall} from './types.js';
 import {Message} from './types.js';
+import type {
+	PromptServerConfigData,
+	ServerActionData,
+	LLMConfigData,
+	PromptApiKeyData,
+} from './types.js';
 import {MessageRenderer} from './components/Messages.js';
 import {Footer} from './components/Footer.js';
+import type {MCPServerConfig} from './services/mcp-config-service.js';
 
 export default function App() {
 	const [messages, setMessages] = useState<
@@ -28,7 +35,9 @@ export default function App() {
 	const [isWaitingForServerConfig, setIsWaitingForServerConfig] =
 		useState(false);
 	const [serverConfigStep, setServerConfigStep] = useState<string>('');
-	const [currentServerConfig, setCurrentServerConfig] = useState<any>(null);
+	const [currentServerConfig, setCurrentServerConfig] = useState<
+		(Partial<MCPServerConfig> & {name?: string}) | undefined
+	>(undefined);
 	const [inputHistory, setInputHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState<number>(-1);
 	const [tempInput, setTempInput] = useState<string>('');
@@ -196,16 +205,20 @@ export default function App() {
 							result.commandResult.type === 'prompt_server_config' &&
 							result.commandResult.data
 						) {
-							setServerConfigStep(result.commandResult.data.step);
-							setCurrentServerConfig(result.commandResult.data.config);
+							const data = result.commandResult.data as PromptServerConfigData;
+							setServerConfigStep(data.step);
+							setCurrentServerConfig(data.config);
 						} else {
 							// Server config is done
 							setIsWaitingForServerConfig(false);
 							setServerConfigStep('');
-							setCurrentServerConfig(null);
+							setCurrentServerConfig(undefined);
 
 							// Update connected servers if servers were connected or disconnected
-							if (result.commandResult.data?.reinitializeAgent) {
+							const data = result.commandResult.data as
+								| ServerActionData
+								| undefined;
+							if (data?.reinitializeAgent) {
 								await cliService.initializeAgent();
 								setConnectedServers([...cliService.getConnectedServers()]);
 							}
@@ -246,7 +259,7 @@ export default function App() {
 				// Reset server config state on error
 				setIsWaitingForServerConfig(false);
 				setServerConfigStep('');
-				setCurrentServerConfig(null);
+				setCurrentServerConfig(undefined);
 			}
 			return;
 		}
@@ -280,7 +293,11 @@ export default function App() {
 
 				for await (const result of stream) {
 					Logger.debug('API key result received', {
-						success: !!result.commandResult?.data?.llmConfig,
+						success: !!(
+							result.commandResult?.data &&
+							typeof result.commandResult.data === 'object' &&
+							'llmConfig' in result.commandResult.data
+						),
 					});
 
 					if (result.commandResult) {
@@ -295,7 +312,8 @@ export default function App() {
 						setMessages(prev => [...prev, commandMessage]);
 
 						// Update current model if successful
-						if (result.commandResult.data?.llmConfig) {
+						const data = result.commandResult.data as LLMConfigData | undefined;
+						if (data?.llmConfig) {
 							await cliService.initializeAgent();
 							setCurrentModel(cliService.getCurrentModel());
 						}
@@ -362,16 +380,23 @@ export default function App() {
 
 				if (chunk.isCommand && chunk.commandResult) {
 					// Check if we need to prompt for API key
-					if (chunk.commandResult.data?.reinitializeAgent) {
+					const cmdData = chunk.commandResult.data as
+						| ServerActionData
+						| undefined;
+					if (cmdData?.reinitializeAgent) {
 						await cliService.initializeAgent();
 						setConnectedServers([...cliService.getConnectedServers()]);
 					}
 
 					// Check if we need to prompt for API key
-					if (chunk.commandResult.type === 'prompt_api_key') {
+					if (
+						chunk.commandResult.type === 'prompt_api_key' &&
+						chunk.commandResult.data
+					) {
+						const apiKeyData = chunk.commandResult.data as PromptApiKeyData;
 						setIsWaitingForApiKey(true);
-						setPendingProvider(chunk.commandResult.data.provider);
-						setPendingModel(chunk.commandResult.data.model);
+						setPendingProvider(apiKeyData.provider);
+						setPendingModel(apiKeyData.model);
 					} else if (chunk.commandResult.type === 'model_switched') {
 						await cliService.initializeAgent();
 						setCurrentModel(cliService.getCurrentModel());
@@ -379,10 +404,16 @@ export default function App() {
 						chunk.commandResult.type === 'prompt_server_config' &&
 						chunk.commandResult.data
 					) {
+						const serverConfigData = chunk.commandResult
+							.data as PromptServerConfigData;
 						setIsWaitingForServerConfig(true);
-						setServerConfigStep(chunk.commandResult.data.step);
-						setCurrentServerConfig(chunk.commandResult.data.config || null);
-					} else if (chunk.commandResult.data?.hasOwnProperty('llmConfig')) {
+						setServerConfigStep(serverConfigData.step);
+						setCurrentServerConfig(serverConfigData.config || undefined);
+					} else if (
+						chunk.commandResult.data &&
+						typeof chunk.commandResult.data === 'object' &&
+						'llmConfig' in chunk.commandResult.data
+					) {
 						// Update current model if it changed (including null for clearkeys)
 						setCurrentModel(cliService.getCurrentModel());
 					}
