@@ -1,8 +1,14 @@
 <div align="center">
-  <img src="static/cli social preview.png" alt="Terminal" />
+  <img src="static/readme.png" alt="Terminal" />
 </div>
 
-A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language. Built with [mcp-use](https://github.com/mcp-use/mcp-use-ts).
+# Open Source and Open Model CLI for MCP
+
+A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language.
+
+## Built with [mcp-use](https://mcp-use.com).
+
+### Build your own MCP Agent -> **Python** <a href="https://github.com/mcp-use/mcp-use"><img src="static/python.png" alt="Python" height="20" style="vertical-align: middle; margin-right: 4px;"/>mcp-use/mcp-use</a> **Typescript** <a href="https://github.com/mcp-use/mcp-use-ts"><img src="static/typescript.png" alt="TypeScript" height="16" style="vertical-align: middle; margin-right: 4px;"/>mcp-use/mcp-use-ts</a>
 
 ## Features
 
