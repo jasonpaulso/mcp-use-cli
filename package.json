@@ -1,6 +1,6 @@
 {
 	"name": "@mcp-use/cli",
-	"version": "1.0.10",
+	"version": "1.0.11",
 	"license": "MIT",
 	"description": "CLI for interacting with Model Context Protocol servers via natural language",
 	"keywords": [
