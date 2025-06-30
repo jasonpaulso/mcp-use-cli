@@ -158,12 +158,14 @@ export class CLIService {
 	 */
 	public async initializeAgent() {
 		try {
+			await this.agentService.reinitializeAgent();
 			Logger.info('Agent service initialized successfully.');
 		} catch (error) {
 			Logger.error('Agent service initialization failed.', {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
+
 	}
 
 	/**

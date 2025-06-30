@@ -90,7 +90,7 @@ export const CommandMessageRenderer = ({
 	if (commandResult.type === 'error') color = 'red';
 	if (commandResult.type === 'success') color = 'green';
 	if (
-		commandResult.type === 'prompt_key' ||
+		commandResult.type === 'prompt_api_key' ||
 		commandResult.type === 'prompt_server_config'
 	) {
 		color = 'yellow';

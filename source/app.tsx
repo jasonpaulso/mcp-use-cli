@@ -296,6 +296,7 @@ export default function App() {
 
 						// Update current model if successful
 						if (result.commandResult.data?.llmConfig) {
+							await cliService.initializeAgent();
 							setCurrentModel(cliService.getCurrentModel());
 						}
 
@@ -366,13 +367,13 @@ export default function App() {
 					}
 
 					// Check if we need to prompt for API key
-					if (
-						chunk.commandResult.type === 'prompt_key' &&
-						chunk.commandResult.data
-					) {
+					if (chunk.commandResult.type === 'prompt_api_key') {
 						setIsWaitingForApiKey(true);
 						setPendingProvider(chunk.commandResult.data.provider);
 						setPendingModel(chunk.commandResult.data.model);
+					} else if (chunk.commandResult.type === 'model_switched') {
+						await cliService.initializeAgent();
+						setCurrentModel(cliService.getCurrentModel());
 					} else if (
 						chunk.commandResult.type === 'prompt_server_config' &&
 						chunk.commandResult.data

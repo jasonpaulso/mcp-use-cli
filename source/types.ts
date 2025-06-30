@@ -12,17 +12,23 @@ export interface ServerStatus {
 	config: any;
 }
 
-export interface CommandResult {
-	type:
+export type CommandResultType =
 	| 'success'
 	| 'error'
 	| 'info'
-	| 'prompt_key'
+	| 'prompt_api_key'
 	| 'prompt_server_config'
 	| 'list_servers'
-	| 'list_tools';
+	| 'list_tools'
+	| 'model_switched'
+	| 'server_connected'
+	| 'server_disconnected';
+
+export interface CommandResult {
+	type: CommandResultType;
 	message: string;
 	data?: any;
+	reinitializeAgent?: boolean;
 }
 
 export interface Message {

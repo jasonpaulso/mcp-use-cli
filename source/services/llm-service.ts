@@ -428,7 +428,7 @@ export class LLMService {
 		if (!result.success) {
 			if (result.requiresApiKey) {
 				return {
-					type: 'prompt_key',
+					type: 'prompt_api_key',
 					message: `Please enter your ${provider.toUpperCase()} API key:`,
 					data: {
 						provider,

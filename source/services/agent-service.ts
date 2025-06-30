@@ -171,6 +171,22 @@ export class AgentService {
 	}
 
 	/**
+	 * Reinitialize the agent with current config
+	 */
+	async reinitializeAgent(): Promise<void> {
+		if (!this.agent || !this.client) {
+			throw new Error('Agent not initialized');
+		}
+		const newClient = new MCPClient(this.client.getConfig());
+		this.agent = new MCPAgent({
+			llm: this.llmService.createLLM(),
+			client: newClient,
+			maxSteps: 30,
+			memoryEnabled: true, // Enable built-in conversation memory
+		});
+		await this.agent?.initialize();
+	}
+	/**
 	 * Connects a new MCP server without reinitializing the entire agent.
 	 * @param serverName - Name of the server to connect
 	 * @param serverConfig - Configuration for the server
