@@ -1,18 +1,18 @@
-import { ChatOpenAI, AzureChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { ChatVertexAI } from '@langchain/google-vertexai';
-import { ChatMistralAI } from '@langchain/mistralai';
-import { ChatGroq } from '@langchain/groq';
-import { ChatCohere } from '@langchain/cohere';
-import { ChatFireworks } from '@langchain/community/chat_models/fireworks';
-import { ChatPerplexity } from '@langchain/community/chat_models/perplexity';
-import { ChatOllama } from '@langchain/ollama';
-import { ChatTogetherAI } from '@langchain/community/chat_models/togetherai';
-import { ChatDeepSeek } from '@langchain/deepseek';
-import { ChatXAI } from '@langchain/xai';
-import { SecureStorage, StoredConfig } from '../storage.js';
-import type { CommandResult } from '../types.js';
+import {ChatOpenAI, AzureChatOpenAI} from '@langchain/openai';
+import {ChatAnthropic} from '@langchain/anthropic';
+import {ChatGoogleGenerativeAI} from '@langchain/google-genai';
+import {ChatVertexAI} from '@langchain/google-vertexai';
+import {ChatMistralAI} from '@langchain/mistralai';
+import {ChatGroq} from '@langchain/groq';
+import {ChatCohere} from '@langchain/cohere';
+import {ChatFireworks} from '@langchain/community/chat_models/fireworks';
+import {ChatPerplexity} from '@langchain/community/chat_models/perplexity';
+import {ChatOllama} from '@langchain/ollama';
+import {ChatTogetherAI} from '@langchain/community/chat_models/togetherai';
+import {ChatDeepSeek} from '@langchain/deepseek';
+import {ChatXAI} from '@langchain/xai';
+import {SecureStorage, StoredConfig} from '../storage.js';
+import type {CommandResult} from '../types.js';
 
 export type ProviderKey = keyof typeof PROVIDERS;
 
@@ -28,84 +28,85 @@ const PROVIDERS = {
 		envVar: 'OPENAI_API_KEY',
 		defaultModel: 'gpt-4o',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatOpenAI({ openAIApiKey: key, modelName: cfg.model }),
+			new ChatOpenAI({openAIApiKey: key, modelName: cfg.model}),
 	},
 	azureopenai: {
 		envVar: 'AZURE_OPENAI_API_KEY',
 		defaultModel: 'gpt-4o',
 		factory: (key: string, cfg: LLMConfig) =>
-			new AzureChatOpenAI({ azureOpenAIApiKey: key, modelName: cfg.model }),
+			new AzureChatOpenAI({azureOpenAIApiKey: key, modelName: cfg.model}),
 	},
 	anthropic: {
 		envVar: 'ANTHROPIC_API_KEY',
 		defaultModel: 'claude-3-5-sonnet-20240620',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatAnthropic({ anthropicApiKey: key, modelName: cfg.model }),
+			new ChatAnthropic({anthropicApiKey: key, modelName: cfg.model}),
 	},
 	gemini: {
 		envVar: 'GOOGLE_API_KEY',
 		defaultModel: 'gemini-1.5-pro',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatGoogleGenerativeAI({ apiKey: key, model: cfg.model }),
+			new ChatGoogleGenerativeAI({apiKey: key, model: cfg.model}),
 	},
 	vertex: {
 		envVar: 'GOOGLE_APPLICATION_CREDENTIALS',
 		defaultModel: 'gemini-1.5-flash',
-		factory: (_key: string, cfg: LLMConfig) => new ChatVertexAI({ model: cfg.model }),
+		factory: (_key: string, cfg: LLMConfig) =>
+			new ChatVertexAI({model: cfg.model}),
 	},
 	mistral: {
 		envVar: 'MISTRAL_API_KEY',
 		defaultModel: 'mistral-large-latest',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatMistralAI({ apiKey: key, modelName: cfg.model }),
+			new ChatMistralAI({apiKey: key, modelName: cfg.model}),
 	},
 	groq: {
 		envVar: 'GROQ_API_KEY',
 		defaultModel: 'llama-3.1-70b-versatile',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatGroq({ apiKey: key, model: cfg.model }),
+			new ChatGroq({apiKey: key, model: cfg.model}),
 	},
 	cohere: {
 		envVar: 'COHERE_API_KEY',
 		defaultModel: 'command-r-plus',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatCohere({ apiKey: key, model: cfg.model }),
+			new ChatCohere({apiKey: key, model: cfg.model}),
 	},
 	fireworks: {
 		envVar: 'FIREWORKS_API_KEY',
 		defaultModel: 'accounts/fireworks/models/llama-v3p1-70b-instruct',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatFireworks({ apiKey: key, model: cfg.model }),
+			new ChatFireworks({apiKey: key, model: cfg.model}),
 	},
 	perplexity: {
 		envVar: 'PERPLEXITY_API_KEY',
 		defaultModel: 'pplx-70b-online',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatPerplexity({ apiKey: key, model: cfg.model }),
+			new ChatPerplexity({apiKey: key, model: cfg.model}),
 	},
 	ollama: {
 		envVar: 'OLLAMA_HOST',
 		defaultModel: 'llama3',
 		factory: (_key: string, cfg: LLMConfig) =>
-			new ChatOllama({ baseUrl: process.env['OLLAMA_HOST'], model: cfg.model }),
+			new ChatOllama({baseUrl: process.env['OLLAMA_HOST'], model: cfg.model}),
 	},
 	together: {
 		envVar: 'TOGETHER_API_KEY',
 		defaultModel: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatTogetherAI({ apiKey: key, model: cfg.model }),
+			new ChatTogetherAI({apiKey: key, model: cfg.model}),
 	},
 	deepseek: {
 		envVar: 'DEEPSEEK_API_KEY',
 		defaultModel: 'deepseek-chat',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatDeepSeek({ apiKey: key, model: cfg.model }),
+			new ChatDeepSeek({apiKey: key, model: cfg.model}),
 	},
 	xai: {
 		envVar: 'XAI_API_KEY',
 		defaultModel: 'grok-1.5',
 		factory: (key: string, cfg: LLMConfig) =>
-			new ChatXAI({ apiKey: key, model: cfg.model }),
+			new ChatXAI({apiKey: key, model: cfg.model}),
 	},
 } as const;
 
@@ -181,7 +182,7 @@ export class LLMService {
 	}
 
 	getCurrentConfig(): LLMConfig | null {
-		return this.currentLLMConfig ? { ...this.currentLLMConfig } : null;
+		return this.currentLLMConfig ? {...this.currentLLMConfig} : null;
 	}
 
 	setModel(
@@ -194,7 +195,7 @@ export class LLMService {
 		envVar?: string;
 	} {
 		if (!Object.keys(PROVIDERS).includes(provider)) {
-			return { success: false, message: `Unknown provider: ${provider}` };
+			return {success: false, message: `Unknown provider: ${provider}`};
 		}
 
 		const availableProviders = this.getAvailableProviders();
@@ -218,12 +219,12 @@ export class LLMService {
 		this.persistentConfig.lastModel = this.currentLLMConfig;
 		SecureStorage.saveConfig(this.persistentConfig);
 
-		return { success: true, message: `Switched to ${provider} ${model}` };
+		return {success: true, message: `Switched to ${provider} ${model}`};
 	}
 
-	setTemperature(temperature: number): { success: boolean; message: string } {
+	setTemperature(temperature: number): {success: boolean; message: string} {
 		if (!this.currentLLMConfig) {
-			return { success: false, message: 'No model configured' };
+			return {success: false, message: 'No model configured'};
 		}
 		if (temperature < 0 || temperature > 2) {
 			return {
@@ -232,44 +233,44 @@ export class LLMService {
 			};
 		}
 		this.currentLLMConfig.temperature = temperature;
-		return { success: true, message: `Temperature set to ${temperature}` };
+		return {success: true, message: `Temperature set to ${temperature}`};
 	}
 
-	setMaxTokens(maxTokens: number): { success: boolean; message: string } {
+	setMaxTokens(maxTokens: number): {success: boolean; message: string} {
 		if (!this.currentLLMConfig) {
-			return { success: false, message: 'No model configured' };
+			return {success: false, message: 'No model configured'};
 		}
 		if (maxTokens < 1) {
-			return { success: false, message: 'Max tokens must be a positive integer' };
+			return {success: false, message: 'Max tokens must be a positive integer'};
 		}
 		this.currentLLMConfig.maxTokens = maxTokens;
-		return { success: true, message: `Max tokens set to ${maxTokens}` };
+		return {success: true, message: `Max tokens set to ${maxTokens}`};
 	}
 
 	validateApiKey(
 		_provider: string,
 		apiKey: string,
-	): { valid: boolean; message: string } {
+	): {valid: boolean; message: string} {
 		if (!apiKey || apiKey.trim().length === 0) {
-			return { valid: false, message: 'API key cannot be empty' };
+			return {valid: false, message: 'API key cannot be empty'};
 		}
 		// Basic validation can be improved per provider if needed
-		return { valid: true, message: '' };
+		return {valid: true, message: ''};
 	}
 
 	setApiKey(
 		provider: string,
 		apiKey: string,
 		shouldAutoSelect = false,
-	): { success: boolean; message: string; autoSelected?: LLMConfig } {
+	): {success: boolean; message: string; autoSelected?: LLMConfig} {
 		const validationResult = this.validateApiKey(provider, apiKey);
 		if (!validationResult.valid) {
-			return { success: false, message: validationResult.message };
+			return {success: false, message: validationResult.message};
 		}
 
 		const providerInfo = PROVIDERS[provider as ProviderKey];
 		if (!providerInfo) {
-			return { success: false, message: `Invalid provider: ${provider}` };
+			return {success: false, message: `Invalid provider: ${provider}`};
 		}
 		const envVar = providerInfo.envVar;
 
@@ -312,11 +313,11 @@ export class LLMService {
 
 	getApiKeyStatus(): Record<
 		string,
-		{ status: string; source: string; masked: string }
+		{status: string; source: string; masked: string}
 	> {
 		const status: Record<
 			string,
-			{ status: string; source: string; masked: string }
+			{status: string; source: string; masked: string}
 		> = {};
 		for (const [providerName, providerInfo] of Object.entries(PROVIDERS)) {
 			const envVar = providerInfo.envVar;
@@ -446,7 +447,7 @@ export class LLMService {
 		return {
 			type: 'success',
 			message: `✅ ${result.message}`,
-			data: { llmConfig: this.getCurrentConfig() },
+			data: {llmConfig: this.getCurrentConfig()},
 		};
 	}
 
@@ -531,7 +532,7 @@ export class LLMService {
 				return {
 					type: 'success',
 					message: `✅ ${tempResult.message}`,
-					data: { llmConfig: this.getCurrentConfig() },
+					data: {llmConfig: this.getCurrentConfig()},
 				};
 
 			case 'tokens':
@@ -553,7 +554,7 @@ export class LLMService {
 				return {
 					type: 'success',
 					message: `✅ ${tokensResult.message}`,
-					data: { llmConfig: this.getCurrentConfig() },
+					data: {llmConfig: this.getCurrentConfig()},
 				};
 
 			default:
@@ -619,7 +620,7 @@ export class LLMService {
 		return {
 			type: 'success',
 			message,
-			data: result.autoSelected ? { llmConfig: result.autoSelected } : undefined,
+			data: result.autoSelected ? {llmConfig: result.autoSelected} : undefined,
 		};
 	}
 
@@ -634,7 +635,7 @@ export class LLMService {
 			type: 'success',
 			message:
 				'✅ All API keys cleared from storage.\n\nUse /setkey or /model to set up a new provider.',
-			data: { llmConfig: null },
+			data: {llmConfig: null},
 		};
 	}
 
@@ -670,7 +671,7 @@ export class LLMService {
 		return {
 			type: 'success',
 			message: `✅ ${provider} API key set (${maskedKey})\n Switched to ${provider}/${model}`,
-			data: { llmConfig: this.getCurrentConfig() },
+			data: {llmConfig: this.getCurrentConfig()},
 		};
 	}
 }

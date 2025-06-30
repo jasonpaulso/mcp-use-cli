@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
-import { cliService } from './services/cli-service.js';
-import { Logger } from './logger.js';
-import { InputPrompt } from './components/InputPrompt.js';
+import React, {useState, useEffect, useCallback} from 'react';
+import {Box, Text, useInput, useStdout} from 'ink';
+import {cliService} from './services/cli-service.js';
+import {Logger} from './logger.js';
+import {InputPrompt} from './components/InputPrompt.js';
 import Spinner from './components/Spinner.js';
 import AsciiLogo from './components/AsciiLogo.js';
-import { CommandMessage } from './types.js';
-import { ToolCall } from './types.js';
-import { Message } from './types.js';
-import { MessageRenderer } from './components/Messages.js';
-import { Footer } from './components/Footer.js';
-
+import {CommandMessage} from './types.js';
+import {ToolCall} from './types.js';
+import {Message} from './types.js';
+import {MessageRenderer} from './components/Messages.js';
+import {Footer} from './components/Footer.js';
 
 export default function App() {
 	const [messages, setMessages] = useState<
@@ -33,7 +32,7 @@ export default function App() {
 	const [inputHistory, setInputHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState<number>(-1);
 	const [tempInput, setTempInput] = useState<string>('');
-	const { stdout } = useStdout();
+	const {stdout} = useStdout();
 
 	// Initialize MCP service on component mount
 	useEffect(() => {
@@ -163,7 +162,7 @@ export default function App() {
 
 		// Check if we're waiting for server configuration input
 		if (isWaitingForServerConfig) {
-			Logger.debug('Processing server config input', { step: serverConfigStep });
+			Logger.debug('Processing server config input', {step: serverConfigStep});
 
 			const userMessage: Message = {
 				id: Date.now().toString(),
@@ -189,7 +188,7 @@ export default function App() {
 				);
 
 				for await (const result of stream) {
-					Logger.debug('Server config result received', { result });
+					Logger.debug('Server config result received', {result});
 
 					if (result.commandResult) {
 						// Check if we're continuing server config or done
@@ -235,8 +234,9 @@ export default function App() {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-						}`,
+					content: `Error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					timestamp: new Date(),
 				};
 
@@ -318,8 +318,9 @@ export default function App() {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-						}`,
+					content: `Error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					timestamp: new Date(),
 				};
 
@@ -424,7 +425,10 @@ export default function App() {
 							// Subsequent chunks: find and update the message
 							setMessages(prev =>
 								prev.map(msg => {
-									if (msg.id === assistantMessageId && msg.role === 'assistant') {
+									if (
+										msg.id === assistantMessageId &&
+										msg.role === 'assistant'
+									) {
 										return {
 											...msg,
 											content: msg.content + chunk.response,
@@ -450,8 +454,9 @@ export default function App() {
 			const errorMessage: Message = {
 				id: (Date.now() + 1).toString(),
 				role: 'assistant',
-				content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-					}`,
+				content: `Error: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`,
 				timestamp: new Date(),
 			};
 

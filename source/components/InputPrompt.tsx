@@ -54,7 +54,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 			const afterCursor = value.slice(cursorPosition);
 
 			// Process the paste buffer to handle carriage returns
-			let processedPaste = pasteBufferRef.current
+			const processedPaste = pasteBufferRef.current
 				.replace(/\r\n/g, '\n')
 				.replace(/\r/g, '\n');
 
@@ -192,7 +192,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 			return <Text dimColor>{placeholder}</Text>;
 		}
 
-		let displayValue = mask ? value.replace(/./g, mask) : value;
+		const displayValue = mask ? value.replace(/./g, mask) : value;
 
 		if (!isMultiline) {
 			// Single line rendering with cursor

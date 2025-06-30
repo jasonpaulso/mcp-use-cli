@@ -1,8 +1,8 @@
-import { MCPAgent, MCPClient } from 'mcp-use';
-import { Logger } from '../logger.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolCall, CommandResult } from '../types.js';
-import { LLMService } from './llm-service.js';
+import {MCPAgent, MCPClient} from 'mcp-use';
+import {Logger} from '../logger.js';
+import type {Tool} from '@modelcontextprotocol/sdk/types.js';
+import type {ToolCall, CommandResult} from '../types.js';
+import {LLMService} from './llm-service.js';
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
@@ -49,7 +49,7 @@ export class AgentService {
 				if (agentStep.action) {
 					// The 'log' contains the "Thought:" part.
 					if (agentStep.action.log) {
-						yield { thought: agentStep.action.log };
+						yield {thought: agentStep.action.log};
 					}
 					// Map AgentStep to our internal ToolCall type
 					const toolCall: ToolCall = {
@@ -60,7 +60,7 @@ export class AgentService {
 						tool_output: agentStep.observation,
 					};
 
-					yield { toolCalls: [toolCall] };
+					yield {toolCalls: [toolCall]};
 				}
 				result = await generator.next();
 			}
@@ -68,7 +68,7 @@ export class AgentService {
 			// When the generator is done, the final response is in result.value
 			const finalResponse: string = result.value;
 			if (finalResponse) {
-				yield { response: finalResponse };
+				yield {response: finalResponse};
 			}
 		} catch (error) {
 			Logger.error('Error sending message to MCP agent', {
@@ -79,17 +79,17 @@ export class AgentService {
 		}
 	}
 
-	async getAvailableTools(): Promise<{ tools: Tool[]; error?: string }> {
+	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
 		Logger.debug('Getting available tools - starting check');
 
 		if (!this.client) {
 			const error = 'No agent/client initialized';
-			Logger.warn('Tools check failed - no client', { error });
-			return { tools: [], error };
+			Logger.warn('Tools check failed - no client', {error});
+			return {tools: [], error};
 		}
 
 		try {
-			let allTools: Tool[] = [];
+			const allTools: Tool[] = [];
 			const sessions = this.client.getAllActiveSessions();
 			for (const [sessionName, session] of Object.entries(sessions)) {
 				if (
@@ -106,10 +106,11 @@ export class AgentService {
 					allTools.push(...sessionTools);
 				}
 			}
-			return { tools: allTools };
+			return {tools: allTools};
 		} catch (error) {
-			const errorMsg = `Failed to get tools: ${error instanceof Error ? error.message : 'Unknown error'
-				}`;
+			const errorMsg = `Failed to get tools: ${
+				error instanceof Error ? error.message : 'Unknown error'
+			}`;
 			Logger.error('Tools check failed with exception', {
 				error: errorMsg,
 				stack: error instanceof Error ? error.stack : undefined,
@@ -130,7 +131,7 @@ export class AgentService {
 			type: 'info',
 			message:
 				'🔧 Checking available MCP tools...\n\nThis command will show tools available from connected MCP servers.\nNote: This requires the MCP service to provide tool listing functionality.',
-			data: { checkTools: true },
+			data: {checkTools: true},
 		};
 	}
 
@@ -204,10 +205,10 @@ export class AgentService {
 		const currentConfig = this.client.getConfig();
 		const newConfig = {
 			mcpServers: {
-				...currentConfig["mcpServers"],
+				...currentConfig['mcpServers'],
 				[serverName]: serverConfig,
-			}
-		}
+			},
+		};
 		this.client = new MCPClient(newConfig);
 
 		this.agent = new MCPAgent({
@@ -235,7 +236,7 @@ export class AgentService {
 
 		Logger.info('Disconnecting from server', serverName);
 		const currentConfig = this.client.getConfig();
-		const mcpServers = { ...currentConfig["mcpServers"] };
+		const mcpServers = {...currentConfig['mcpServers']};
 		delete mcpServers[serverName];
 
 		const newConfig = {
