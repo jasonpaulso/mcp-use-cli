@@ -10,9 +10,13 @@
 		"ai"
 	],
 	"author": "Pietro",
+	"homepage": "https://mcp-use.com",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/mcp-use/mcp-use-cli"
+	},
+	"bugs": {
+		"url": "https://github.com/mcp-use/mcp-use-cli/issues"
 	},
 	"bin": {
 		"mcp-use": "dist/cli.js"
@@ -49,6 +53,7 @@
 		"@langchain/ollama": "^0.2.3",
 		"@langchain/xai": "^0.0.3",
 		"@modelcontextprotocol/sdk": "^1.13.2",
+		"@scarf/scarf": "^1.4.0",
 		"cli-spinners": "^3.2.0",
 		"dotenv": "^16.5.0",
 		"ink": "^5.2.1",
@@ -72,5 +77,10 @@
 		"typescript": "^5.0.3",
 		"typescript-eslint": "^8.35.0"
 	},
-	"prettier": "@vdemedes/prettier-config"
+	"prettier": "@vdemedes/prettier-config",
+	"scarfSettings": {
+		"enabled": true,
+		"defaultOptIn": true,
+		"allowTopLevel": true
+	}
 }
