@@ -215,6 +215,7 @@ export default function App() {
 							const data = result.commandResult.data as PromptServerConfigData;
 							setServerConfigStep(data.step);
 							setCurrentServerConfig(data.config);
+							
 						} else {
 							// Server config is done
 							setIsWaitingForServerConfig(false);
@@ -225,6 +226,7 @@ export default function App() {
 							const data = result.commandResult.data as
 								| ServerActionData
 								| undefined;
+
 							if (data?.reinitializeAgent) {
 								await cliService.initializeAgent();
 								setConnectedServers([...cliService.getConnectedServers()]);
