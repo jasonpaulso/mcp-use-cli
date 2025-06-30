@@ -1,13 +1,13 @@
-import {config} from 'dotenv';
-import {Logger} from '../logger.js';
-import type {CommandResult} from '../types.js';
-import type {ToolCall} from '../types.js';
-import type {Tool} from '@modelcontextprotocol/sdk/types.js';
-import type {LLMConfigData, ServerActionData} from '../types.js';
-import {AgentService} from './agent-service.js';
-import {LLMService} from './llm-service.js';
-import {MCPConfigService, type MCPServerConfig} from './mcp-config-service.js';
-import {UtilityService} from './utility-service.js';
+import { config } from 'dotenv';
+import { Logger } from '../logger.js';
+import type { CommandResult } from '../types.js';
+import type { ToolCall } from '../types.js';
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { LLMConfigData, ServerActionData } from '../types.js';
+import { AgentService } from './agent-service.js';
+import { LLMService } from './llm-service.js';
+import { MCPConfigService, type MCPServerConfig } from './mcp-config-service.js';
+import { UtilityService } from './utility-service.js';
 
 // Load environment variables
 config();
@@ -27,7 +27,7 @@ type CommandHandler = (
 /**
  * Registry entry for a command, including its handler and metadata.
  */
-interface CommandRegistryEntry {
+export interface CommandRegistryEntry {
 	handler: CommandHandler;
 	description: string;
 }
@@ -230,9 +230,8 @@ export class CLIService {
 			});
 			return {
 				type: 'error',
-				message: `Command failed: ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				message: `Command failed: ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 			};
 		}
 	}
@@ -257,7 +256,7 @@ export class CLIService {
 		pendingModel?: string,
 		isServerConfigInput?: boolean,
 		serverConfigStep?: string,
-		serverConfig?: Partial<MCPServerConfig> & {name?: string},
+		serverConfig?: Partial<MCPServerConfig> & { name?: string },
 	): AsyncGenerator<{
 		response?: string;
 		toolCalls?: ToolCall[];
@@ -356,12 +355,11 @@ export class CLIService {
 				return;
 			} catch (error) {
 				yield {
-					response: `Command error: ${
-						error instanceof Error ? error.message : 'Unknown error'
-					}`,
+					response: `Command error: ${error instanceof Error ? error.message : 'Unknown error'
+						}`,
 					toolCalls: [],
 					isCommand: true,
-					commandResult: {type: 'error', message: 'Command failed'},
+					commandResult: { type: 'error', message: 'Command failed' },
 					done: true,
 				};
 				return;
@@ -405,16 +403,15 @@ export class CLIService {
 					done: false,
 				};
 			}
-			yield {done: true};
+			yield { done: true };
 		} catch (error) {
 			Logger.error('Error sending message via Agent service', {
 				error: error instanceof Error ? error.message : 'Unknown error',
 				stack: error instanceof Error ? error.stack : undefined,
 			});
 			yield {
-				response: `Error: ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				response: `Error: ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 				thought: undefined,
 				done: true,
 			};
@@ -483,7 +480,7 @@ export class CLIService {
 	 * Gets the list of available tools from the agent.
 	 * @returns A promise that resolves to an object containing the tools or an error.
 	 */
-	async getAvailableTools(): Promise<{tools: Tool[]; error?: string}> {
+	async getAvailableTools(): Promise<{ tools: Tool[]; error?: string }> {
 		return this.agentService.getAvailableTools();
 	}
 
@@ -512,7 +509,7 @@ export class CLIService {
 		return {
 			type: 'list_servers',
 			message: 'MCP Server Status:',
-			data: {servers: serversWithStatus},
+			data: { servers: serversWithStatus },
 		};
 	}
 
@@ -547,7 +544,7 @@ export class CLIService {
 			type: 'prompt_server_config',
 			message:
 				'Let\'s configure a new MCP server!\n\nYou can either:\n1. Enter a server name for interactive setup\n2. Paste a complete JSON configuration\n\nExample JSON:\n{\n  "mcpServers": {\n    "myserver": {\n      "command": "npx",\n      "args": ["-y", "@example/server"]\n    }\n  }\n}\n\nEnter server name or paste JSON:',
-			data: {step: 'name_or_json'},
+			data: { step: 'name_or_json' },
 		};
 	}
 
@@ -611,7 +608,7 @@ export class CLIService {
 			return {
 				type: 'success',
 				message: `Connected to server "${serverName}"!`,
-				data: {reinitializeAgent: true},
+				data: { reinitializeAgent: true },
 			};
 		} catch (error) {
 			Logger.error(`Failed to connect to server ${serverName}`, {
@@ -619,9 +616,8 @@ export class CLIService {
 			});
 			return {
 				type: 'error',
-				message: `Failed to connect to server "${serverName}": ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				message: `Failed to connect to server "${serverName}": ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 			};
 		}
 	}
@@ -675,7 +671,7 @@ export class CLIService {
 			return {
 				type: 'success',
 				message: `✅ Disconnected from server "${serverName}".`,
-				data: {reinitializeAgent: true},
+				data: { reinitializeAgent: true },
 			};
 		} catch (error) {
 			Logger.error(`Failed to disconnect from server ${serverName}`, {
@@ -683,11 +679,18 @@ export class CLIService {
 			});
 			return {
 				type: 'error',
-				message: `Failed to disconnect from server "${serverName}": ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`,
+				message: `Failed to disconnect from server "${serverName}": ${error instanceof Error ? error.message : 'Unknown error'
+					}`,
 			};
 		}
+	}
+
+	/**
+	 * Returns the command registry.
+	 * @returns The map of registered commands
+	 */
+	getCommandRegistry(): Map<string, CommandRegistryEntry> {
+		return this.commandRegistry;
 	}
 }
 
