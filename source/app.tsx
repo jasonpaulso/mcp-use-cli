@@ -519,7 +519,7 @@ export default function App() {
 					</Box>
 				)}
 
-				{!initializationError && !isLoading && (
+				{!initializationError && (
 					<Box
 						marginBottom={1}
 						flexDirection="column"
