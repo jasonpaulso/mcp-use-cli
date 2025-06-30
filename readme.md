@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="static/terminal.png" alt="Terminal" />
+  <img src="static/cli social preview.png" alt="Terminal" />
 </div>
 
 A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language. Built with [mcp-use](https://github.com/mcp-use/mcp-use-ts).
