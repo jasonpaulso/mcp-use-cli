@@ -1,9 +1,23 @@
 {
-	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
-		"outDir": "dist",
+		"target": "ES2022",
+		"rootDir": ".",
+		"module": "Node16",
+		"moduleResolution": "Node16",
+		"resolveJsonModule": true,
+		"strict": true,
+		"declaration": true,
+		"declarationMap": true,
+		"outDir": "./dist",
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
 		"skipLibCheck": true
 	},
-	"include": ["source"],
-	"exclude": ["source/client/**/*"]
+	"include": [
+		"**/*.ts"
+	],
+	"exclude": [
+		"node_modules",
+		"dist"
+	]
 }

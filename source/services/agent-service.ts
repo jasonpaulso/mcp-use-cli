@@ -217,7 +217,23 @@ export class AgentService {
 			throw new Error(`Server "${serverName}" is not connected`);
 		}
 
-		this.client?.removeServer(serverName);
-		this.agent?.initialize();
+		Logger.info('Disconnecting from server', serverName);
+		const currentConfig = this.client.getConfig();
+		const mcpServers = { ...currentConfig["mcpServers"] };
+		delete mcpServers[serverName];
+
+		const newConfig = {
+			mcpServers,
+		};
+
+		this.client = new MCPClient(newConfig);
+
+		this.agent = new MCPAgent({
+			llm: this.llmService.createLLM(),
+			client: this.client,
+			maxSteps: 30,
+			memoryEnabled: true, // Enable built-in conversation memory
+		});
+		await this.agent?.initialize();
 	}
 }

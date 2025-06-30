@@ -2,14 +2,12 @@
 	"name": "@mcp-use/cli",
 	"version": "1.0.1",
 	"license": "MIT",
-	"description": "A CLI tool for interacting with Model Context Protocol (MCP) servers using natural language",
+	"description": "CLI for interacting with Model Context Protocol servers via natural language",
 	"keywords": [
 		"mcp",
-		"model-context-protocol",
 		"cli",
-		"ai",
-		"langchain",
-		"openai"
+		"model-context-protocol",
+		"ai"
 	],
 	"author": "Pietro",
 	"repository": {
@@ -24,17 +22,21 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc",
-		"dev": "tsc --watch",
-		"test": "prettier --check . && xo && ava",
-		"release": "np"
+		"build": "rm -rf dist && tsc",
+		"watch": "tsc --watch",
+		"start": "node dist/cli.js",
+		"prepublishOnly": "npm run build",
+		"lint": "eslint",
+		"lint:fix": "eslint --fix",
+		"fmt": "eslint --fix",
+		"release": "npm version patch --tag-version-prefix=v && git push --follow-tags",
+		"release:minor": "npm version minor --tag-version-prefix=v && git push --follow-tags",
+		"release:major": "npm version major --tag-version-prefix=v && git push --follow-tags"
 	},
 	"files": [
 		"dist"
 	],
 	"dependencies": {
-		"@hey-api/client-fetch": "^0.12.0",
-		"@huggingface/inference": "^4.1.0",
 		"@langchain/anthropic": "^0.3.23",
 		"@langchain/cohere": "^0.3.4",
 		"@langchain/community": "^0.3.47",
@@ -45,52 +47,27 @@
 		"@langchain/groq": "^0.2.3",
 		"@langchain/mistralai": "^0.2.1",
 		"@langchain/ollama": "^0.2.3",
-		"@langchain/openai": "^0.5.15",
 		"@langchain/xai": "^0.0.3",
-		"@mcp-use/cli": "^1.0.0",
 		"@modelcontextprotocol/sdk": "^1.13.2",
 		"cli-spinners": "^3.2.0",
 		"dotenv": "^16.5.0",
 		"ink": "^5.2.1",
 		"ink-big-text": "^2.0.0",
-		"ink-spinner": "^5.0.0",
-		"ink-text-input": "^6.0.0",
-		"mcp-use": "file:../mcp-use-ts",
+		"mcp-use": "^0.1.1",
 		"meow": "^11.0.0",
-		"react": "^18.2.0",
-		"zod": "^3.25.56"
+		"react": "^18.2.0"
 	},
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^3.0.1",
 		"@types/react": "^18.0.32",
+		"@typescript-eslint/eslint-plugin": "^7.18.0",
+		"@typescript-eslint/parser": "^7.18.0",
 		"@vdemedes/prettier-config": "^2.0.1",
-		"ava": "^5.2.0",
-		"chalk": "^5.2.0",
-		"eslint-config-xo-react": "^0.27.0",
-		"eslint-plugin-react": "^7.32.2",
-		"eslint-plugin-react-hooks": "^4.6.0",
-		"ink-testing-library": "^3.0.0",
-		"np": "^10.0.0",
-		"prettier": "^2.8.7",
-		"ts-node": "^10.9.1",
-		"typescript": "^5.0.3",
-		"xo": "^0.53.1"
-	},
-	"ava": {
-		"extensions": {
-			"ts": "module",
-			"tsx": "module"
-		},
-		"nodeArguments": [
-			"--loader=ts-node/esm"
-		]
-	},
-	"xo": {
-		"extends": "xo-react",
-		"prettier": true,
-		"rules": {
-			"react/prop-types": "off"
-		}
+		"eslint": "^9.8.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-prettier": "^5.2.1",
+		"prettier": "^3.3.3",
+		"typescript": "^5.0.3"
 	},
 	"prettier": "@vdemedes/prettier-config"
 }
