@@ -1,5 +1,5 @@
-import { SecureStorage, StoredConfig } from '../storage.js';
-import type { CommandResult } from '../types.js';
+import {SecureStorage, StoredConfig} from '../storage.js';
+import type {CommandResult} from '../types.js';
 
 export interface MCPServerConfig {
 	command: string;
@@ -101,8 +101,9 @@ export class MCPConfigService {
 		} catch (error) {
 			return {
 				success: false,
-				message: `Invalid JSON format: ${error instanceof Error ? error.message : 'Parse error'
-					}\n\nPlease check your JSON syntax and try again.`,
+				message: `Invalid JSON format: ${
+					error instanceof Error ? error.message : 'Parse error'
+				}\n\nPlease check your JSON syntax and try again.`,
 			};
 		}
 	}
@@ -183,8 +184,9 @@ export class MCPConfigService {
 			);
 			return {
 				success: false,
-				message: `Server "${serverName}" is not configured.\n\nConfigured servers: ${configuredServers.length > 0 ? configuredServers.join(', ') : 'none'
-					}`,
+				message: `Server "${serverName}" is not configured.\n\nConfigured servers: ${
+					configuredServers.length > 0 ? configuredServers.join(', ') : 'none'
+				}`,
 			};
 		}
 
@@ -198,9 +200,9 @@ export class MCPConfigService {
 		};
 	}
 
-	validateServerName(name: string): { valid: boolean; message?: string } {
+	validateServerName(name: string): {valid: boolean; message?: string} {
 		if (!name || !name.trim()) {
-			return { valid: false, message: 'Server name cannot be empty.' };
+			return {valid: false, message: 'Server name cannot be empty.'};
 		}
 
 		if (this.persistentConfig.mcpServers?.[name.trim()]) {
@@ -210,7 +212,7 @@ export class MCPConfigService {
 			};
 		}
 
-		return { valid: true };
+		return {valid: true};
 	}
 
 	parseEnvironmentVariables(envString: string): Record<string, string> {
@@ -246,7 +248,7 @@ export class MCPConfigService {
 				type: 'prompt_server_config',
 				message:
 					'Let\'s configure a new MCP server!\n\nYou can either:\n1. Enter a server name for interactive setup\n2. Paste a complete JSON configuration\n\nExample JSON:\n{\n  "mcpServers": {\n    "myserver": {\n      "command": "npx",\n      "args": ["-y", "@example/server"]\n    }\n  }\n}\n\nEnter server name or paste JSON:',
-				data: { step: 'name_or_json' },
+				data: {step: 'name_or_json'},
 			};
 		}
 
@@ -279,7 +281,7 @@ export class MCPConfigService {
 			return {
 				type: 'info',
 				message: `Server connect command received for: ${serverName}`,
-				data: { connectServer: true, serverName },
+				data: {connectServer: true, serverName},
 			};
 		}
 
@@ -302,7 +304,7 @@ export class MCPConfigService {
 			return {
 				type: 'info',
 				message: `Server disconnect command received for: ${serverName}`,
-				data: { disconnectServer: true, serverName },
+				data: {disconnectServer: true, serverName},
 			};
 		}
 
@@ -331,7 +333,7 @@ export class MCPConfigService {
 		return {
 			type: 'list_servers',
 			message: 'MCP Server Status:',
-			data: { servers },
+			data: {servers},
 		};
 	}
 
@@ -378,7 +380,7 @@ export class MCPConfigService {
 		return {
 			type: 'info',
 			message: `🧪 Testing server "${serverName}"...\n\nCommand: ${result.command}\n\n Note: This will attempt to run the server command manually.\nCheck the console for output and errors.\n\n Try running this command manually in your terminal:\n${result.command}`,
-			data: { testServer: true, serverName, command: result.command },
+			data: {testServer: true, serverName, command: result.command},
 		};
 	}
 
@@ -392,7 +394,7 @@ export class MCPConfigService {
 	handleServerConfigInput(
 		input: string,
 		step: string,
-		serverConfig?: Partial<MCPServerConfig> & { name?: string },
+		serverConfig?: Partial<MCPServerConfig> & {name?: string},
 	): CommandResult {
 		const config = serverConfig || {};
 
@@ -432,7 +434,7 @@ export class MCPConfigService {
 				return {
 					type: 'prompt_server_config',
 					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
-					data: { step: 'command', config },
+					data: {step: 'command', config},
 				};
 
 			case 'name':
@@ -448,7 +450,7 @@ export class MCPConfigService {
 				return {
 					type: 'prompt_server_config',
 					message: `Server name: ${config.name}\n\nEnter the command to run this server (e.g., "npx", "node", "python"):`,
-					data: { step: 'command', config },
+					data: {step: 'command', config},
 				};
 
 			case 'command':
@@ -463,17 +465,19 @@ export class MCPConfigService {
 				return {
 					type: 'prompt_server_config',
 					message: `Server name: ${config.name}\nCommand: ${config.command}\n\nEnter arguments (space-separated, or press Enter for none):\nExample: "-y @modelcontextprotocol/server-filesystem /tmp"`,
-					data: { step: 'args', config },
+					data: {step: 'args', config},
 				};
 
 			case 'args':
 				config.args = input.trim() ? input.trim().split(/\s+/) : [];
 				return {
 					type: 'prompt_server_config',
-					message: `Server name: ${config.name}\nCommand: ${config.command
-						}\nArgs: ${config.args.length > 0 ? config.args.join(' ') : 'none'
-						}\n\nEnter environment variables (KEY=VALUE format, one per line, or press Enter for none):\nExample: "DEBUG=1" or press Enter to skip:`,
-					data: { step: 'env', config },
+					message: `Server name: ${config.name}\nCommand: ${
+						config.command
+					}\nArgs: ${
+						config.args.length > 0 ? config.args.join(' ') : 'none'
+					}\n\nEnter environment variables (KEY=VALUE format, one per line, or press Enter for none):\nExample: "DEBUG=1" or press Enter to skip:`,
+					data: {step: 'env', config},
 				};
 
 			case 'env':
@@ -481,17 +485,20 @@ export class MCPConfigService {
 
 				return {
 					type: 'prompt_server_config',
-					message: `Server Configuration Summary:\n\nName: ${config.name
-						}\nCommand: ${config.command}\nArgs: ${config.args && config.args.length > 0
+					message: `Server Configuration Summary:\n\nName: ${
+						config.name
+					}\nCommand: ${config.command}\nArgs: ${
+						config.args && config.args.length > 0
 							? config.args.join(' ')
 							: 'none'
-						}\nEnv: ${config.env && Object.keys(config.env).length > 0
+					}\nEnv: ${
+						config.env && Object.keys(config.env).length > 0
 							? Object.entries(config.env)
-								.map(([k, v]) => `${k}=${v}`)
-								.join(', ')
+									.map(([k, v]) => `${k}=${v}`)
+									.join(', ')
 							: 'none'
-						}\n\nConfirm to add this server? (y/n):`,
-					data: { step: 'confirm', config },
+					}\n\nConfirm to add this server? (y/n):`,
+					data: {step: 'confirm', config},
 				};
 
 			case 'confirm':

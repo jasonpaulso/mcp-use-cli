@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
-import { cliService } from './services/cli-service.js';
-import { Logger } from './logger.js';
-import { InputPrompt } from './components/InputPrompt.js';
+import React, {useState, useEffect, useCallback} from 'react';
+import {Box, Text, useInput, useStdout} from 'ink';
+import {cliService} from './services/cli-service.js';
+import {Logger} from './logger.js';
+import {InputPrompt} from './components/InputPrompt.js';
 import Spinner from './components/Spinner.js';
-import { AsciiLogo } from './components/AsciiLogo.js';
-import { CommandMessage } from './types.js';
-import { ToolCall } from './types.js';
-import { Message } from './types.js';
+import {AsciiLogo} from './components/AsciiLogo.js';
+import {CommandMessage} from './types.js';
+import {ToolCall} from './types.js';
+import {Message} from './types.js';
 import type {
 	PromptServerConfigData,
 	ServerActionData,
 	LLMConfigData,
 	PromptApiKeyData,
 } from './types.js';
-import { MessageRenderer } from './components/Messages.js';
-import { Footer } from './components/Footer.js';
-import type { MCPServerConfig } from './services/mcp-config-service.js';
-import type { CommandRegistryEntry } from './services/cli-service.js';
-import { CommandSuggestions } from './components/CommandSuggestions.js';
+import {MessageRenderer} from './components/Messages.js';
+import {Footer} from './components/Footer.js';
+import type {MCPServerConfig} from './services/mcp-config-service.js';
+import type {CommandRegistryEntry} from './services/cli-service.js';
+import {CommandSuggestions} from './components/CommandSuggestions.js';
 import Gradient from 'ink-gradient';
 
 export default function App() {
@@ -39,7 +39,7 @@ export default function App() {
 		useState(false);
 	const [serverConfigStep, setServerConfigStep] = useState<string>('');
 	const [currentServerConfig, setCurrentServerConfig] = useState<
-		(Partial<MCPServerConfig> & { name?: string }) | undefined
+		(Partial<MCPServerConfig> & {name?: string}) | undefined
 	>(undefined);
 	const [inputHistory, setInputHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState<number>(-1);
@@ -47,7 +47,7 @@ export default function App() {
 	const [commandSuggestions, setCommandSuggestions] = useState<
 		Array<[string, CommandRegistryEntry]>
 	>([]);
-	const { stdout } = useStdout();
+	const {stdout} = useStdout();
 
 	// Initialize MCP service on component mount
 	useEffect(() => {
@@ -178,7 +178,7 @@ export default function App() {
 
 		// Check if we're waiting for server configuration input
 		if (isWaitingForServerConfig) {
-			Logger.debug('Processing server config input', { step: serverConfigStep });
+			Logger.debug('Processing server config input', {step: serverConfigStep});
 
 			const userMessage: Message = {
 				id: Date.now().toString(),
@@ -204,7 +204,7 @@ export default function App() {
 				);
 
 				for await (const result of stream) {
-					Logger.debug('Server config result received', { result });
+					Logger.debug('Server config result received', {result});
 
 					if (result.commandResult) {
 						// Check if we're continuing server config or done
@@ -215,7 +215,6 @@ export default function App() {
 							const data = result.commandResult.data as PromptServerConfigData;
 							setServerConfigStep(data.step);
 							setCurrentServerConfig(data.config);
-							
 						} else {
 							// Server config is done
 							setIsWaitingForServerConfig(false);
@@ -256,8 +255,9 @@ export default function App() {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-						}`,
+					content: `Error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					timestamp: new Date(),
 				};
 
@@ -344,8 +344,9 @@ export default function App() {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: 'assistant',
-					content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-						}`,
+					content: `Error: ${
+						error instanceof Error ? error.message : 'Unknown error'
+					}`,
 					timestamp: new Date(),
 				};
 
@@ -505,8 +506,9 @@ export default function App() {
 			const errorMessage: Message = {
 				id: (Date.now() + 1).toString(),
 				role: 'assistant',
-				content: `Error: ${error instanceof Error ? error.message : 'Unknown error'
-					}`,
+				content: `Error: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`,
 				timestamp: new Date(),
 			};
 
@@ -590,7 +592,10 @@ export default function App() {
 			{showInput && !initializationError && (
 				<Box flexDirection="column" marginTop={1}>
 					{input.startsWith('/') && (
-						<CommandSuggestions suggestions={commandSuggestions} query={input} />
+						<CommandSuggestions
+							suggestions={commandSuggestions}
+							query={input}
+						/>
 					)}
 					<Box
 						borderStyle="round"
