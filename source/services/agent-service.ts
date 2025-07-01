@@ -14,8 +14,8 @@ import type {MCPServerConfig} from './mcp-config-service.js';
 // Set telemetry source to identify CLI usage
 setTelemetrySource('CLI');
 
-// Disable debug logging from mcp-use package
-MCPLogger.setDebug(0);
+// Suppress info and debug logs from mcp-use package
+MCPLogger.configure({level: 'warn'});
 
 export interface AgentServiceDeps {
 	llmService: LLMService;
@@ -29,8 +29,16 @@ export class AgentService {
 	constructor(deps: AgentServiceDeps) {
 		this.llmService = deps.llmService;
 		this.client = new MCPClient({});
+
+		const llm = this.llmService.createLLM();
+		if (!llm) {
+			throw new Error(
+				'LLM Service could not create a model. Check your configuration.',
+			);
+		}
+
 		this.agent = new MCPAgent({
-			llm: this.llmService.createLLM(),
+			llm,
 			client: this.client,
 			maxSteps: 15,
 			memoryEnabled: true, // Enable built-in conversation memory
@@ -189,9 +197,15 @@ export class AgentService {
 		if (!this.agent || !this.client) {
 			throw new Error('Agent not initialized');
 		}
+
+		const llm = this.llmService.createLLM();
+		if (!llm) {
+			throw new Error('LLM not available. Agent could not be reinitialized.');
+		}
+
 		const newClient = new MCPClient(this.client.getConfig());
 		this.agent = new MCPAgent({
-			llm: this.llmService.createLLM(),
+			llm,
 			client: newClient,
 			maxSteps: 30,
 			memoryEnabled: true, // Enable built-in conversation memory
