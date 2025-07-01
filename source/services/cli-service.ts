@@ -353,8 +353,8 @@ export class CLIService {
 					'checkTools' in commandResult.data &&
 					commandResult.data.checkTools
 				) {
-					const toolsResult = (await this.agentService)
-						? this.agentService.getAvailableTools()
+					const toolsResult = this.agentService
+						? await this.agentService.getAvailableTools()
 						: {tools: [], error: 'Agent not initialized'};
 
 					yield {
