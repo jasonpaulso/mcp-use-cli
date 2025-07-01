@@ -22,6 +22,11 @@ A CLI tool for interacting with Model Context Protocol (MCP) servers using natur
 - 🔑 **Smart API key prompting** - automatically asks for keys when needed
 - 💾 **Persistent secure storage** - encrypted keys and settings saved across sessions
 
+## Demo video
+
+[![Watch the video](static/thumbnail.png)](https://www.youtube.com/watch?v=V0gTXkrwMqA)
+
+
 ## Install
 
 ```bash
@@ -60,6 +65,8 @@ $ npm install --global @mcp-use/cli
    - [Cohere](https://dashboard.cohere.com/api-keys)
 
 > **Keys are stored securely encrypted** in `~/.mcp-use-cli/config.json` and persist across sessions.
+
+
 
 ## Alternative Setup
 
